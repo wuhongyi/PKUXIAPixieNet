@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Pixie-Net PSA Histogram</title>
+
+<!-- Plotly.js -->
+  <script src="plotly-latest.min.js"></script>
+
+<style type="text/css">
+	body { background-color:#d0d0d0; font-family:sans-serif; }
+	div.box { background-color:#ffffff; width:500px; margin:20px auto 50px; padding:50px; border-radius:10px; border:1px solid #808080; box-shadow:8px 15px 20px #404040 }
+	img.logo { float:right; margin:-10px 0 0 30px }
+	h1 { margin:0; font-size:24px }
+	h2 { margin-top:40px; font-size:20px; font-weight:normal; border-bottom:1px solid #ff9040 }
+	p { font-size:14px }
+	a { color:#6060d0; text-decoration:none }
+	a:hover { text-decoration:underline }
+</style>
+
+
+</head>
+
+
+<body>
+ <div class="box">            
+<img src="Xia_LLC_web_header.jpg" width="500" height="80" border="0"></a>
+<p> </p>
+<p> <h1> Pixie-Net PSA histograms </h1></p>
+
+
+<!-- Plotly chart will be drawn inside this DIV -->
+<div id="Ch0" style="width:480px; height:400px;"></div>
+<div id="Ch1" style="width:480px; height:400px;"></div>
+<div id="Ch2" style="width:480px; height:400px;"></div>
+<div id="Ch3" style="width:480px; height:400px;"></div>
+<script>
+
+// define global constants
+var Nbins=100;
+   
+Plotly.d3.csv('psa2D.csv', function(err, rows){
+
+	function unpack(rows, key) {
+	  return rows.map(function(row) { return row[key]; });
+	}
+
+	// define the color scheme
+		var psacolor = [
+                   ['0.000', 'rgb(245,245,245)'],
+						 ['0.002', 'rgb(255,100,100)'],
+                   ['0.010', 'rgb(255,  0,  0)'],
+                   ['0.020', 'rgb(255, 64,  0)'],
+                   ['0.030', 'rgb(255,128,  0)'],
+						 ['0.040', 'rgb(255,191,  0)'],
+                   ['0.050', 'rgb(255,255,  0)'],
+						 ['0.075', 'rgb(191,255,  0)'],
+						 ['0.100', 'rgb(128,255,  0)'],
+						 ['0.130', 'rgb( 64,255,  0)'],
+						 ['0.160', 'rgb(  0,255,  0)'],
+						 ['0.200', 'rgb(  0,255, 64)'],
+						 ['0.250', 'rgb(  0,255,128)'],
+						 ['0.300', 'rgb(  0,255,191)'],
+						 ['0.360', 'rgb(  0,191,255)'],
+						 ['0.420', 'rgb(  0,128,255)'],
+						 ['0.480', 'rgb(  0, 64,255)'],
+						 ['0.540', 'rgb(  0,  0,255)'],
+						 ['0.700', 'rgb( 64,  0,255)'],
+						 ['0.750', 'rgb(128,  0,255)'],
+						 ['0.850', 'rgb(191,  0,255)'],
+						 ['0.980', 'rgb(255,  0,255)'],
+						 ['1.000', 'rgb(  0,  0,  0)'],
+					  ]; 
+	  
+	var z_data0=[ ]
+	for(i=0;i< Nbins;i++)
+	{
+	  z_data0.push(unpack(rows,i));
+	}
+	var z_data1=[ ]
+	for(i=Nbins;i<Nbins*2;i++)
+	{
+	  z_data1.push(unpack(rows,i));
+	}
+	var z_data2=[ ]
+	for(i=Nbins*2;i< Nbins*3;i++)
+	{
+	  z_data2.push(unpack(rows,i));
+	}	
+	var z_data3=[ ]
+	for(i=Nbins*3;i< Nbins*4;i++)
+	{
+	  z_data3.push(unpack(rows,i));
+	}
+	var data0 = [{
+	           z: z_data0,
+				  colorscale: psacolor,
+	           type: 'heatmap'
+	        }];	  
+	var data1 = [{
+	           z: z_data1,
+				  colorscale: psacolor,
+	           type: 'heatmap'
+	        }];	  		  	
+	var data2 = [{
+	           z: z_data2,
+				  colorscale: psacolor,
+	           type: 'heatmap'
+	        }];	  
+	var data3 = [{
+	           z: z_data3,
+				  colorscale: psacolor,
+	           type: 'heatmap'
+	        }];	  		  
+
+
+   var layout = {  
+   		autosize: true,	 
+			margin: {t: 20},
+			xaxis: { title: 'Energy' },
+			yaxis: { title: 'PSA value' }
+  			}
+
+	Plotly.newPlot('Ch0', data0, layout);
+	Plotly.newPlot('Ch1', data1, layout);
+	Plotly.newPlot('Ch2', data2, layout);
+	Plotly.newPlot('Ch3', data3, layout);
+
+});
+
+</script>
+
+
+
+
+</div>
+
+<p>Use browser button to refresh </p>	   
+<p>Hover over plot to see plot options </p>
+
+
+</body>
+</html>
+

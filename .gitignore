@@ -1,0 +1,6 @@
+*.~
+*.o
+sample_data/
+*.csv
+*.b00
+*.dat

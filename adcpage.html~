@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>Pixie-Net ADC</title>
+
+<script type="text/javascript"  src="dygraph-combined.js"></script>
+
+<style type="text/css">
+	body { background-color:#d0d0d0; font-family:sans-serif; }
+	div.box { background-color:#ffffff; width:500px; margin:20px auto 50px; padding:50px; border-radius:10px; border:1px solid #808080; box-shadow:8px 15px 20px #404040 }
+	img.logo { float:right; margin:-10px 0 0 30px }
+	h1 { margin:0; font-size:24px }
+	h2 { margin-top:40px; font-size:20px; font-weight:normal; border-bottom:1px solid #ff9040 }
+	p { font-size:14px }
+	a { color:#6060d0; text-decoration:none }
+	a:hover { text-decoration:underline }
+</style>
+
+
+</head>
+
+
+<body>
+ <div class="box">            
+<img src="Xia_LLC_web_header.jpg" width="500" height="80" border="0"></a>
+<p> </p>
+<p> <h1> Pixie-Net ADC Traces </h1></p>
+
+
+
+
+<div id="graphdiv2"  style="width:500px; height:300px;"></div>
+<script type="text/javascript">
+
+  Dygraph.Interaction.DEBUG = true;
+
+  var g2 = new Dygraph(
+    document.getElementById("graphdiv2"),
+    "ADC.csv", // path to CSV file
+    {legend: 'always',
+	  title: ' ',
+	  ylabel: 'ADC value',
+	  xlabel: 'Sample number'}          // options
+  );
+      var graphs = [ g2 ];
+      var scales = { x : false, y : false };
+      function setLogScale(axis, val) {
+        if (axis === 'y') {
+          for (var idx = 0; idx < graphs.length; idx++) {
+            graphs[idx].updateOptions({ logscale: val });
+          }
+        } else {
+          for (var idx = 0; idx < graphs.length; idx++) {
+            graphs[idx].updateOptions({ axes : { x : {  logscale : val } } });
+          }
+        }
+        scales[axis] = val;
+        var text = "y: " + (scales.y ? "log" : "linear") + ", x: " + (scales.x ? "log" : "linear");
+        document.getElementById("description").innerText = text;
+      }
+
+      setLogScale('y', false);
+
+</script>
+
+
+ </div>
+
+<p>Double click to auto zoom </p>
+<p>Click and drag to zoom </p>
+<p>Alt click and drag to pan </p>
+<p>Use browser button to refresh </p>
+<p>Roughly 200 nanoseconds between samples </p>
+
+
+
+</body>
+</html>
+
+
+
+
+
