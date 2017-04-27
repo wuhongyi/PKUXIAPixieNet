@@ -1,4 +1,4 @@
-*.~
+*~
 *.o
 sample_data/
 *.csv
