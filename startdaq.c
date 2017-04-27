@@ -93,14 +93,14 @@ int main(void) {
   // ******************* read ini file and fill struct with values ********************
   
   PixieNetFippiConfig fippiconfig;		// struct holding the input parameters
-  const char *defaults_file = "defaults.ini";
+  const char *defaults_file = "settings/defaults.ini";
   int rval = init_PixieNetFippiConfig_from_file( defaults_file, 0, &fippiconfig );   // first load defaults, do not allow missing parameters
   if( rval != 0 )
   {
     printf( "Failed to parse FPGA settings from %s, rval=%d\n", defaults_file, rval );
     return rval;
   }
-  const char *settings_file = "settings.ini";
+  const char *settings_file = "settings/settings.ini";
   rval = init_PixieNetFippiConfig_from_file( settings_file, 1, &fippiconfig );   // second override with user settings, do allow missing
   if( rval != 0 )
   {

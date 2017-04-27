@@ -295,7 +295,7 @@ int main( int argc, char **argv )
   // ------ Start setting up the PIXIE-NET  -------
   // --------------------------------------------------------
 
-  const string settings_file = "settings.ini";
+  const string settings_file = "settings/settings.ini";
   RunOptions options;
   PixieNetFippiConfig fippiconfig;
   
@@ -890,7 +890,7 @@ int init_configurations( int argc, char **argv,
   po::options_description cl_desc("Allowed options");
   cl_desc.add_options()
     ("help,h",  "produce this help message")
-    ("settings,s", po::value<string>(&settingsfile)->default_value("settings.ini"), "Input settings file ")
+    ("settings,s", po::value<string>(&settingsfile)->default_value("settings/settings.ini"), "Input settings file ")
     ("lmout,l", po::value<string>(&options.listmode_output_name)->default_value("LMdata"), "Name of listmode output file")
     ("mcaout,m", po::value<string>(&options.mca_output_name)->default_value("MCA"), "Name of MCA output file")
   ;
@@ -924,7 +924,7 @@ int init_configurations( int argc, char **argv,
     return -1;
   }//if( cl_vm.count("help") )
 
-  const char *defaults_file = "defaults.ini";
+  const char *defaults_file = "settings/defaults.ini";
   int rval = init_PixieNetFippiConfig_from_file( defaults_file, 0, &fippiconfig );   // first load defaults, do not allow missing parameters
   if( rval != 0 )
   {
