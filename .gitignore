@@ -4,3 +4,6 @@ sample_data/
 *.csv
 *.b00
 *.dat
+*.txt
+*.dt2
+*.dt3
