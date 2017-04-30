@@ -205,7 +205,7 @@ namespace {
     }
     
     value = pos->second;
-    trim( value );
+    trim( value );//去掉字符序列左边和右边的空格
     
     vector<string> fields;
     split( fields, value, " \t,;" );
