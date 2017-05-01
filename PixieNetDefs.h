@@ -80,53 +80,53 @@
 
 
 // system reg addr defines
-// block 0
-#define ACSRIN        0x000
-#define ACOINCPATTERN 0x001
-#define AI2CREG       0x002
-#define AOUTBLOCK     0x003
-#define AHVDAC        0x004
-#define ASERIALIO     0x005
-#define AAUXCTRL      0x006
-#define AADCCTRL      0x007
-#define ADSP_CLR      0x008
-#define ACOUNTER_CLR  0x009
-#define ARTC_CLR      0x00A
+// block 0     Use these to specify parameters that control the data acquisition,Can be read back to verify I/O 
+#define ACSRIN        0x000   // =0x0000 all off  Run Control Register bits 0 RunEnable (set to start DAQ run)  9 nLive (set to 1 to pause DAQ run)
+#define ACOINCPATTERN 0x001   // bit0-15 COINCIDENCE_PATTERN; bit16 coincidence mode;bit17 no trace out mode;bit18 only 1 record per CW
+#define AI2CREG       0x002   // Control the SDA and SCL lines 0 SDA;1 SCL;2 SDA ENA (SDA output enable)
+#define AOUTBLOCK     0x003   // =OB_IOREG  read from IO block      Specifies address range for reads  If 0: 0x000-0x04F;If 1: 0x100-0x14F;If 2: 0x200-0x29F;If 3: 0x300-0x303
+#define AHVDAC        0x004   // (int)floor((fippiconfig.HV_DAC/5.0)*65535);	map 0..5V range to 0..64K
+#define ASERIALIO     0x005   // Offboard serial IO
+#define AAUXCTRL      0x006   // bit0 pulser enabled脉冲发生器   bit1 LED red on/off(NYI)
+#define AADCCTRL      0x007   // Controls certain aspects of ADC operation  0 swap channel 0/1 data streams;1 swap channel 2/3 data streams
+#define ADSP_CLR      0x008   // Writing to this register issues a dspclr pulse(processing init)
+#define ACOUNTER_CLR  0x009   // Writing to this register issues a pulse to clear runstats counters
+#define ARTC_CLR      0x00A   // Writing to this register issues a pulse to clear RTC time counter
 #define ABVAL         0x00B
 #define CA_DAC        0x004
 
-// block 1
-#define ACSROUT       0x100
-#define AEVSTATS      0x101
+// block 1    Use these during the run to get info of the current status,Read only
+#define ACSROUT       0x100   // Run Status info bits    0 RunEnable (set to start DAQ run);2 SDA readback;4 zdtfull;9 nLive;10 PSA enabled;11 VetoIn;13 ACTIVE (=RunEnable);15..31 debug
+#define AEVSTATS      0x101   // EVSTATS (Event status information)     0 DataReadyA (if 1, there is data in channel’s ZDT buffer);1 DataReadyB;2 DataReadyC;3 DataReadyD
 #define ABRDINFO      0x102
-#define APPSTIME      0x103
+#define APPSTIME      0x103   // Current PPStime (local time latched with external trigger)
 #define AEVHIT        0x104
-#define AEVTSL        0x105
-#define AEVTSH        0x106
-#define AEVPPS        0x107
+#define AEVTSL        0x105   // Event time stamp M, L (mode 0x402, 503)
+#define AEVTSH        0x106   // Event time stamp X, H (mode 0x402, 503)
+#define AEVPPS        0x107   // Event PPS time (mode 0x402, 503)
 
 
-// block 2
+// block 2   Used for run statistics and other output values. Sometimes two 16bit words per address Unit “ticks” means 2ns clock ticks,Read only
 #define ARS0_MOD      0x200
 #define AREALTIME     0x201
 
 // channel reg addr defines
-// block 1
+// block 1    Use these during the run to read event data,Read only
 // channel independent lower bits of event registers
-#define CA_HIT			0x100
-#define CA_TSL			0x101
-#define CA_TSH		   0x102
-#define CA_PSAA		0x103
-#define CA_PSAB		0x104
-#define CA_CFDA		0x105
-#define CA_CFDB		0x106
-#define CA_LSUM		0x107
-#define CA_TSUM		0x108
-#define CA_GSUM		0x109
-#define CA_REJECT		0x10A
-#define CA_LSUMB		0x10B
-#define CA_TSUMB		0x10C
-#define CA_GSUMB		0x10D
+#define CA_HIT			0x100   // Hitpattern
+#define CA_TSL			0x101   // Event or local time stamp M, L(local TS in mode 0x402, 0x503 is lower 24 bits * 256)
+#define CA_TSH		   0x102   // Event time stamp X, H
+#define CA_PSAA		0x103   // PSA value
+#define CA_PSAB		0x104   // PSA value or gate pulse counter
+#define CA_CFDA		0x105   // CFD values
+#define CA_CFDB		0x106   // CFD values
+#define CA_LSUM		0x107   // Lsum
+#define CA_TSUM		0x108   // Tsum
+#define CA_GSUM		0x109   // Gsum, read advances event buffers and increments NOUT
+#define CA_REJECT		0x10A   // Read advances event buffers without incrementing NOUT
+#define CA_LSUMB		0x10B   // Lsum for BL avg
+#define CA_TSUMB		0x10C   // Tsum for BL avg
+#define CA_GSUMB		0x10D   // Gsum for BL avg
 // ADC registers
 #define AADC0        0x11F
 #define AADC1        0x12F
@@ -138,10 +138,10 @@
 #define ARS0_CH2     0x260
 #define ARS0_CH3     0x280
 // block 3
-#define AWF0         0x300
-#define AWF1         0x301
-#define AWF2         0x302
-#define AWF3         0x303
+#define AWF0         0x300   // Waveform FIFO channel 0
+#define AWF1         0x301   // Waveform FIFO channel 1
+#define AWF2         0x302   // Waveform FIFO channel 2
+#define AWF3         0x303   // Waveform FIFO channel 3
 
 // outblocks
 #define OB_IOREG     0x0			// I/O
