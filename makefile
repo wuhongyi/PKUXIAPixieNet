@@ -1,4 +1,4 @@
-TARGET = cgitraces.cgi gettraces progfippi runstats cgistats.cgi startdaq coincdaq findsettings acquire
+TARGET = cgitraces.cgi gettraces progfippi runstats cgistats.cgi startdaq coincdaq findsettings acquire pkudaq
 LIBS = -lm 
 CFLAGS = -std=c99 -Wall
 CXXFLAGS = -Wall -O3 -DNDEBUG   -pthread -std=gnu++98

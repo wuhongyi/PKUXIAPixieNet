@@ -47,6 +47,10 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+#include <sys/stat.h>//stat(const char *file_name,struct stat *buf)
+#include <termios.h> // tcgetattr(), tcsetattr()
+#include <sys/time.h> // struct timeval, select()
+
 #include <map>
 #include <vector>
 #include <string>
@@ -54,10 +58,13 @@
 #include <fstream>
 #include <iostream>
 #include <algorithm>
-
+#include <iomanip> 
+#include <vector>
 
 #include "PixieNetDefs.h"
 #include "PixieNetConfig.h"
+
+#include "wuReadData.hh"
 
 using namespace std;
 
@@ -515,16 +522,16 @@ int init_PixieNetFippiConfig_from_file( const char * const filename,
     return -1;
 
   // *************** system parameters ********************************* 
-  ret = parse_single_int_val( label_to_values, "NUMBER_CHANNELS", config->NUMBER_CHANNELS, ignore_missing );
+  ret = parse_single_int_val( label_to_values, "NUMBER_CHANNELS", config->NUMBER_CHANNELS, ignore_missing );//ok
   if( (ignore_missing==0 && ret==1) || (ret<0) )  return -2;
   
-  ret = parse_single_int_val( label_to_values, "C_CONTROL", config->C_CONTROL, ignore_missing ) ;
+  ret = parse_single_int_val( label_to_values, "C_CONTROL", config->C_CONTROL, ignore_missing ) ;//no
   if( (ignore_missing==0 && ret==1) || (ret<0) )  return -3;
 
-  ret = parse_single_dbl_val( label_to_values, "REQ_RUNTIME", config->REQ_RUNTIME, ignore_missing ) ;
+  ret = parse_single_dbl_val( label_to_values, "REQ_RUNTIME", config->REQ_RUNTIME, ignore_missing ) ;//no
   if( (ignore_missing==0 && ret==1) || (ret<0) )  return -7;
 
-  ret = parse_single_int_val( label_to_values, "POLL_TIME", config->POLL_TIME, ignore_missing ) ;
+  ret = parse_single_int_val( label_to_values, "POLL_TIME", config->POLL_TIME, ignore_missing ) ;//no
   if( (ignore_missing==0 && ret==1) || (ret<0) )  return -7;
   
   // *************** module parameters ************************************
@@ -533,26 +540,26 @@ int init_PixieNetFippiConfig_from_file( const char * const filename,
   if (ignore_missing==0)           // initialize only when reading defaults 
       config->MODULE_CSRA = 0;
 
-  ret = parse_single_bool_val( label_to_values, "MCSRA_CWGROUP_00", bit, ignore_missing ) ;
+  ret = parse_single_bool_val( label_to_values, "MCSRA_CWGROUP_00", bit, ignore_missing ) ;//ok
   if( (ignore_missing==0 && ret==1) || (ret<0) )  return -1;
   if(ret==0) config->MODULE_CSRA = SetOrClrBit(0, config->MODULE_CSRA, bit); 
   
-  ret = parse_single_bool_val( label_to_values, "MCSRA_FPVETO_05", bit, ignore_missing ) ;
+  ret = parse_single_bool_val( label_to_values, "MCSRA_FPVETO_05", bit, ignore_missing ) ;//ok
   if( (ignore_missing==0 && ret==1) || (ret<0) )  return -1;
   if(ret==0) config->MODULE_CSRA = SetOrClrBit(5, config->MODULE_CSRA, bit); 
   
-  ret = parse_single_bool_val( label_to_values, "MCSRA_FPPEDGE_07", bit, ignore_missing ) ;
+  ret = parse_single_bool_val( label_to_values, "MCSRA_FPPEDGE_07", bit, ignore_missing ) ;//ok
   if( (ignore_missing==0 && ret==1) || (ret<0) )  return -2;
   if(ret==0) config->MODULE_CSRA = SetOrClrBit(7, config->MODULE_CSRA, bit); 
   
   if (ignore_missing==0)           // initialize only when reading defaults 
       config->MODULE_CSRB = 0;
                          
-  ret = parse_single_bool_val( label_to_values, "MCSRB_TERM01_01", bit, ignore_missing ) ;
+  ret = parse_single_bool_val( label_to_values, "MCSRB_TERM01_01", bit, ignore_missing ) ;//ok
   if( (ignore_missing==0 && ret==1) || (ret<0) )    return -3;
   if(ret==0) config->MODULE_CSRB = SetOrClrBit(1, config->MODULE_CSRB, bit);  
  
-  ret = parse_single_bool_val( label_to_values, "MCSRB_TERM23_02", bit, ignore_missing ) ;
+  ret = parse_single_bool_val( label_to_values, "MCSRB_TERM23_02", bit, ignore_missing ) ;//ok
   if( (ignore_missing==0 && ret==1) || (ret<0) )    return -4;
   if(ret==0) config->MODULE_CSRB = SetOrClrBit(2, config->MODULE_CSRB, bit);  
   
@@ -890,3 +897,491 @@ int init_PixieNetFippiConfig_from_file( const char * const filename,
 
   return 0;
 }//init_PixieNetFippiConfig_from_file(...)
+
+
+
+int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct PixieNetFippiConfig *config)
+{
+  int set;
+  vector<int>* setsint = new vector<int>;
+  vector<double>* setsdouble = new vector<double>;
+  int retn;
+
+  config->NUMBER_CHANNELS = wuReadData::ReadValue<unsigned int>("NUMBER_CHANNELS",std::string(filename));
+  // std::cout<<"NUMBER_CHANNELS  "<<config->NUMBER_CHANNELS<<std::endl;
+
+  config->SYNC_AT_START = wuReadData::ReadValue<unsigned int>("SYNC_AT_START",std::string(filename));
+  // std::cout<<"SYNC_AT_START  "<<config->SYNC_AT_START<<std::endl;
+
+  config->AUX_CTRL = wuReadData::ReadValue<unsigned int>("AUX_CTRL",std::string(filename));
+  // std::cout<<"AUX_CTRL  "<<config->AUX_CTRL<<std::endl;
+
+  config->SERIAL_IO = wuReadData::ReadValue<unsigned int>("SERIAL_IO",std::string(filename));
+  // std::cout<<"SERIAL_IO  "<<config->SERIAL_IO<<std::endl;
+
+  config->COINCIDENCE_WINDOW = wuReadData::ReadValue<double>("COINCIDENCE_WINDOW",std::string(filename));
+  // std::cout<<"COINCIDENCE_WINDOW  "<<config->COINCIDENCE_WINDOW<<std::endl;
+
+  config->HV_DAC = wuReadData::ReadValue<double>("HV_DAC",std::string(filename));
+  // std::cout<<"HV_DAC  "<<config->HV_DAC<<std::endl;
+
+  config->FILTER_RANGE = wuReadData::ReadValue<unsigned int>("FILTER_RANGE",std::string(filename));
+  // std::cout<<"FILTER_RANGE  "<<config->FILTER_RANGE<<std::endl;
+
+
+  config->MODULE_CSRA = 0;
+  set = wuReadData::ReadValue<int>("MCSRA_CWGROUP_00",std::string(filename));
+  config->MODULE_CSRA = SetOrClrBit(0, config->MODULE_CSRA, set); 
+  set = wuReadData::ReadValue<int>("MCSRA_FPVETO_05",std::string(filename));
+  config->MODULE_CSRA = SetOrClrBit(5, config->MODULE_CSRA, set); 
+  set = wuReadData::ReadValue<int>("MCSRA_FPPEDGE_07",std::string(filename));
+  config->MODULE_CSRA = SetOrClrBit(7, config->MODULE_CSRA, set); 
+  // std::cout<<"MODULE_CSRA  "<<hex<<config->MODULE_CSRA<<std::endl;
+
+  config->MODULE_CSRB = 0;
+  set = wuReadData::ReadValue<int>("MCSRB_TERM01_01",std::string(filename));
+  config->MODULE_CSRB = SetOrClrBit(1, config->MODULE_CSRB, set); 
+  set = wuReadData::ReadValue<int>("MCSRB_TERM23_02",std::string(filename));
+  config->MODULE_CSRB = SetOrClrBit(2, config->MODULE_CSRB, set); 
+  set = wuReadData::ReadValue<int>("MCSRB_PDCH0_04",std::string(filename));
+  config->MODULE_CSRB = SetOrClrBit(4, config->MODULE_CSRB, set); 
+  set = wuReadData::ReadValue<int>("MCSRB_PDCH1_05",std::string(filename));
+  config->MODULE_CSRB = SetOrClrBit(5, config->MODULE_CSRB, set); 
+  set = wuReadData::ReadValue<int>("MCSRB_PDCH2_06",std::string(filename));
+  config->MODULE_CSRB = SetOrClrBit(6, config->MODULE_CSRB, set); 
+  set = wuReadData::ReadValue<int>("MCSRB_PDCH3_07",std::string(filename));
+  config->MODULE_CSRB = SetOrClrBit(7, config->MODULE_CSRB, set); 
+  // std::cout<<"MODULE_CSRB  "<<hex<<config->MODULE_CSRB<<std::endl;
+
+
+  config->COINCIDENCE_PATTERN = 0;
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_0000",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(0, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_0001",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(1, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_0010",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(2, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_0011",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(3, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_0100",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(4, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_0101",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(5, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_0110",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(6, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_0111",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(7, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_1000",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(8, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_1001",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(9, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_1010",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(10, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_1011",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(11, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_1100",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(12, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_1101",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(13, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_1110",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(14, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_1111",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(15, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_bit16",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(16, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_bit17",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(17, config->COINCIDENCE_PATTERN, set); 
+  set = wuReadData::ReadValue<int>("COINC_PATTERN_bit18",std::string(filename));
+  config->COINCIDENCE_PATTERN = SetOrClrBit(18, config->COINCIDENCE_PATTERN, set); 
+  // std::cout<<"COINCIDENCE_PATTERN  "<<hex<<config->COINCIDENCE_PATTERN<<std::endl;
+
+
+
+
+  for( int i = 0; i < NCHANNELS; ++i )
+    {
+      config->CHANNEL_CSRA[i] = 0;
+      config->CHANNEL_CSRB[i] = 0;
+      config->CHANNEL_CSRC[i] = 0;
+    }
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRA_GROUP_00",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRA[i] = SetOrClrBit(0, config->CHANNEL_CSRA[i], setsint->at(i)); 
+  
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRA_GOOD_02",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRA[i] = SetOrClrBit(2, config->CHANNEL_CSRA[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRA_TRIGENA_04",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRA[i] = SetOrClrBit(4, config->CHANNEL_CSRA[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRA_INVERT_05",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRA[i] = SetOrClrBit(5, config->CHANNEL_CSRA[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRA_VETO_REJLO_06",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRA[i] = SetOrClrBit(6, config->CHANNEL_CSRA[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRA_NEGE_09",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRA[i] = SetOrClrBit(9, config->CHANNEL_CSRA[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRA_GATE_REJLO_12",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRA[i] = SetOrClrBit(12, config->CHANNEL_CSRA[i], setsint->at(i)); 
+
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_VETO_REJHI_00",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(0, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_GATE_REJHI_01",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(1, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_GATE_FROMVETO_02",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(2, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_PILEUP_DISABLE_03",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(3, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_RBAD_DISABLE_04",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(4, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_PILEUP_INVERT_05",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(5, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_PILEUP_PAUSE_06",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(6, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_GATE_FEDGE_07",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(7, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_GATE_STATS_08",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(8, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_VETO_FEDGE_09",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(9, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_GATE_ISPULSE_10",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(10, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_CPC2PSA_14",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(14, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("CCSRC_GATE_PULSEFEDGE_15",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i )
+    config->CHANNEL_CSRC[i] = SetOrClrBit(15, config->CHANNEL_CSRC[i], setsint->at(i)); 
+
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("ENERGY_RISETIME",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->ENERGY_RISETIME[i] = setsdouble->at(i);
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("ENERGY_FLATTOP",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->ENERGY_FLATTOP[i] = setsdouble->at(i);
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("TRIGGER_RISETIME",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->TRIGGER_RISETIME[i] = setsdouble->at(i);
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("TRIGGER_FLATTOP",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->TRIGGER_FLATTOP[i] = setsdouble->at(i);
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("TRIGGER_THRESHOLD",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->TRIGGER_THRESHOLD[i] = setsdouble->at(i);
+
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("ANALOG_GAIN",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->ANALOG_GAIN[i] = setsdouble->at(i);
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("VOFFSET",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->VOFFSET[i] = setsdouble->at(i);
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("TRACE_LENGTH",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->TRACE_LENGTH[i] = setsdouble->at(i);
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("TRACE_DELAY",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->TRACE_DELAY[i] = setsdouble->at(i);
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("PSA_THRESHOLD",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->PSA_THRESHOLD[i] = (unsigned int)setsint->at(i);
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("GATE_WINDOW",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->GATE_WINDOW[i] = setsdouble->at(i);
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("GATE_DELAY",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->GATE_DELAY[i] = setsdouble->at(i);
+
+  setsdouble->clear();
+  retn = wuReadData::ReadVector("COINC_DELAY",std::string(filename),setsdouble);
+  // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->COINC_DELAY[i] = setsdouble->at(i);
+
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("QDC0_LENGTH",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->QDC0_LENGTH[i] = (unsigned int)setsint->at(i);
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("QDC1_LENGTH",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->QDC1_LENGTH[i] = (unsigned int)setsint->at(i);
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("QDC0_DELAY",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->QDC0_DELAY[i] = (unsigned int)setsint->at(i);
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("QDC1_DELAY",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->QDC1_DELAY[i] = (unsigned int)setsint->at(i);
+
+  setsint->clear();
+  retn = wuReadData::ReadVector("QDC_DIV8",std::string(filename),setsint);
+  // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
+  for( int i = 0; i < NCHANNELS; ++i ) config->QDC_DIV8[i] = (unsigned int)setsint->at(i);
+
+
+
+  if(setsint) delete setsint;
+  if(setsdouble) delete setsdouble;
+
+  // config-> = wuReadData::ReadValue<int>("",std::string(filename));
+  // std::cout<<"  "<<config-><<std::endl;
+
+ // set = wuReadData::ReadValue<int>("",std::string(filename));
+  return 0;
+}
+
+
+void PrintInterface() 
+{
+  printf("\n  [q]   Quit\n");
+  printf("  [s]   Start/Stop acquisition\n");
+  printf("  [t]   Send a software trigger\n");
+  printf("  [w]   Enable/Disable continuous writing to output file\n");
+  printf("  [R]   Reload board parameters file and restart\n");
+  printf("  [p]   Enable/Disable  plot mode\n");
+  // printf("  [0]   Plot recently single on plot mode \n");
+  // printf("  [2/8] Minus/Plus one channel on plot mode\n");
+  // printf("  [4/6] Minus/Plus one board on plot mode\n");
+  printf("--------------------------------------------------------------------------\n");
+
+}
+
+
+void RunManagerInit(DigitizerRun_t *RunManager)
+{
+  RunManager->RunNumber = -1;
+  RunManager->FileNo = -1;
+  
+  RunManager->Quit = false;
+  RunManager->AcqRun = false;
+  // RunManager->Nb = 0;
+
+  RunManager->WriteFlag = false;
+  
+  // memset(RunManager->PrevTime, 0, MAXNB*MaxNChannels*sizeof(uint64_t));
+
+
+  // std::string PathToRawData = ReadValue<std::string>("PathToRawData",PKU_DGTZ_GlobalParametersFileName);
+  // sprintf(RunManager->PathToRawData,"%s",PathToRawData.c_str());
+  // std::cout<<RunManager->PathToRawData<<std::endl;
+
+  // RunManager->PlotFlag = false;
+  // RunManager->DoPlotBoard = 0;
+  // RunManager->DoPlotChannel = 0;
+  // RunManager->PlotChooseN = ReadValue<int>("PlotChooseN",PKU_DGTZ_GlobalParametersFileName);
+}
+
+void CheckKeyboard(DigitizerRun_t *PKU_DGTZ_RunManager)
+{
+  int b;
+
+  if(kbhit())
+    {
+      PKU_DGTZ_RunManager->Key = getch();
+      std::cout<<PKU_DGTZ_RunManager->Key<<std::endl;
+      switch(PKU_DGTZ_RunManager->Key)
+	{
+	case 'q' :
+	  {
+	    if(PKU_DGTZ_RunManager->AcqRun) 
+	      {
+		printf("Please enter [s] to stop and enter [q] to quit.\n");
+		break;
+	      }
+	    PKU_DGTZ_RunManager->Quit = true;
+	    break;
+	  }
+
+
+	case '\n' :
+	  PrintInterface();
+	  break;
+
+	default:
+	  break;
+	}
+
+    }
+
+}
+
+static struct termios g_old_kbd_mode;
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+static void cooked(void)
+{
+  tcsetattr(0, TCSANOW, &g_old_kbd_mode);
+}
+
+
+static void raw(void)
+{
+  static char init;
+  struct termios new_kbd_mode;
+
+  if(init)
+    return;
+  /* put keyboard (stdin, actually) in raw, unbuffered mode */
+  tcgetattr(0, &g_old_kbd_mode);
+  memcpy(&new_kbd_mode, &g_old_kbd_mode, sizeof(struct termios));
+  new_kbd_mode.c_lflag &= ~(ICANON | ECHO);
+  new_kbd_mode.c_cc[VTIME] = 0;
+  new_kbd_mode.c_cc[VMIN] = 1;
+  tcsetattr(0, TCSANOW, &new_kbd_mode);
+  /* when we exit, go back to normal, "cooked" mode */
+  atexit(cooked);
+
+  init = 1;
+}
+
+int getch(void)
+{
+  unsigned char temp;
+
+  raw();
+  /* stdin = fd 0 */
+  if(read(0, &temp, 1) != 1)
+    return 0;
+  return temp;
+
+}
+
+int kbhit()
+{
+  struct timeval timeout;
+  fd_set read_handles;
+  int status;
+
+  raw();
+  /* check stdin (fd 0) for activity */
+  FD_ZERO(&read_handles);
+  FD_SET(0, &read_handles);
+  timeout.tv_sec = timeout.tv_usec = 0;
+  status = select(0 + 1, &read_handles, NULL, NULL, &timeout);
+  if(status < 0)
+    {
+      printf("select() failed in kbhit()\n");
+      exit(1);
+    }
+  return (status);
+}
+
+void Sleep(int t) 
+{
+  usleep( t*1000 );
+}
+
+void DoInTerminal(char *terminal)
+{
+  system(terminal);
+}
+
+long get_time()
+{
+  long time_ms;
+  struct timeval t1;
+  struct timezone tz;
+  gettimeofday(&t1, &tz);
+  time_ms = (t1.tv_sec) * 1000 + t1.tv_usec / 1000;
+  return time_ms;
+}

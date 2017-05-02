@@ -4,9 +4,9 @@
 // Author: Hongyi Wu(吴鸿毅)
 // Email: wuhongyi@qq.com 
 // Created: Mon May  1 10:49:37 2017 (+0000)
-// Last-Updated: Mon May  1 11:57:55 2017 (+0000)
+// Last-Updated: Tue May  2 14:02:18 2017 (+0000)
 //           By: Hongyi Wu(吴鸿毅)
-//     Update #: 2
+//     Update #: 10
 // URL: http://wuhongyi.cn 
 
 #include <stdio.h>
@@ -38,20 +38,16 @@ int main(int argc, char *argv[])
   volatile unsigned int *mapped;  
 
   unsigned int SyncT;
-
+  int rval;
 
   // ******************* read ini file and fill struct with values ********************
   
   PixieNetFippiConfig fippiconfig;		// struct holding the input parameters
-  const char *defaults_file = "settings/defaults.ini";
-  int rval = init_PixieNetFippiConfig_from_file( defaults_file, 0, &fippiconfig );   // first load defaults, do not allow missing parameters
-  if( rval != 0 )
-    {
-      printf( "Failed to parse FPGA settings from %s, rval=%d\n", defaults_file, rval );
-      return rval;
-    }
-  const char *settings_file = "settings/settings.ini";
-  rval = init_PixieNetFippiConfig_from_file( settings_file, 1, &fippiconfig );   // second override with user settings, do allow missing
+  DigitizerRun_t PKU_DGTZ_RunManager;
+
+
+  const char *settings_file = "settings/pkupar.txt";
+  rval = PKU_init_PixieNetFippiConfig_from_file(settings_file, &fippiconfig);   // second override with user settings, do allow missing
   if( rval != 0 )
     {
       printf( "Failed to parse FPGA settings from %s, rval=%d\n", settings_file, rval );
@@ -117,9 +113,34 @@ int main(int argc, char *argv[])
                      
 
 
-  mapped[AOUTBLOCK] = OB_RSREG;
-  read_print_runstats(0, 0, mapped);
-  mapped[AOUTBLOCK] = OB_IOREG;
+  // mapped[AOUTBLOCK] = OB_RSREG;
+  // read_print_runstats(0, 0, mapped);// print (small) set of RS to file, visible to web
+  // mapped[AOUTBLOCK] = OB_IOREG;
+
+
+  //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+  
+  RunManagerInit(&PKU_DGTZ_RunManager);
+
+  // Readout Loop
+  PrintInterface();
+
+  while(!PKU_DGTZ_RunManager.Quit) 
+    {
+      CheckKeyboard(&PKU_DGTZ_RunManager);
+
+      if (!PKU_DGTZ_RunManager.AcqRun) 
+  	{
+  	  Sleep(10);
+  	  continue;
+  	}
+
+
+
+
+
+
+    }
 
 
 

@@ -294,8 +294,55 @@ int init_PixieNetFippiConfig_from_file( const char * const filename,
                                        int ignore_missing,
                                        struct PixieNetFippiConfig *config );
   
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+  
+//run manager
+struct DigitizerRun_t
+{
+  int RunNumber;
+  int FileNo;//form 0,1,2,3……
+  
+  bool Quit;//true:exit  false:run
+  bool AcqRun;//true:start  false:stop
+  char Key;//
+  // int Nb;//
+
+  bool WriteFlag;//true:write  false:not write
+
+  // bool PlotFlag;
+  // int DoPlotBoard;
+  // int DoPlotChannel;
+  // int PlotEveryN;//  plot one every N waveform
+  // int PlotChooseN;//const
+
+  // uint64_t CurrentTime;
+  // uint64_t PrevRateTime;
+  // uint64_t ElapsedTime;
+} ;
+
+
+
+
+int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct PixieNetFippiConfig *config);
   
   
+void PrintInterface();
+
+void RunManagerInit(DigitizerRun_t *RunManager);
+
+void CheckKeyboard(DigitizerRun_t *PKU_DGTZ_RunManager);
+
+int kbhit();
+
+int getch(void);
+
+void Sleep(int t);
+
+// Get time in milliseconds     return  time in msec 
+long get_time();
+
+  void DoInTerminal(char *terminal);
+
 #ifdef __cplusplus
 }
 #endif
