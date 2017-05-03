@@ -36,7 +36,7 @@ cgistats.cgi: cgistats.o PixieNetCommon.o
 	gcc cgistats.o PixieNetCommon.o $(LIBS) -o cgistats.cgi
 
 pkudaq: pkudaq.o PixieNetCommon.o PixieNetConfig.o
-	g++ pkudaq.o PixieNetCommon.o PixieNetConfig.o $(LIBS) -o pkudaq
+	g++ pkudaq.o PixieNetCommon.o PixieNetConfig.o  $(LIBS) -o pkudaq
 
 startdaq: startdaq.o PixieNetCommon.o PixieNetConfig.o
 	g++ startdaq.o PixieNetCommon.o PixieNetConfig.o $(LIBS) -o startdaq

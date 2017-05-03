@@ -37,6 +37,7 @@
 #define PixieNetConfig_h
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "PixieNetDefs.h"
 
@@ -272,30 +273,6 @@ typedef struct PixieNetFippiConfig {
   double PSA_NG_THRESHOLD[NCHANNELS];//     1      1      1      1                     threshold to distinguish neutrons and gammas in PSA parameter R=Q0/Q1
 } PixieNetFippiConfig;
 
-
-/** Parses the provided ini file into the provided PixieNetFipiConfig struct.
-    \returns 0 upon success.
- 
-    Note that current requires that for each member variable of 
-    PixieNetFipiConfig, the configuration file must have a line starting with 
-    that identifier string, and followed by the expected number of numeric
-    values.
- 
-    Blank lines, or lines starting with a '#' character are skipped, as are
-    any lines with unrecognized identifiers.
- 
-    Integer numeric values that start with a '0x' prefix are assumed to be 
-    hexidecimal.
- 
-    Currently does not due any range checking!  This is left to progfippi.
-
- */
-int init_PixieNetFippiConfig_from_file( const char * const filename,
-                                       int ignore_missing,
-                                       struct PixieNetFippiConfig *config );
-  
-//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
-  
 //run manager
 struct DigitizerRun_t
 {
@@ -320,17 +297,57 @@ struct DigitizerRun_t
   // uint64_t ElapsedTime;
 } ;
 
+struct DigitizerFPGAUnit
+{
+  unsigned int CW;
+  unsigned int FR;// FILTER_RANGE
+  unsigned int SL[NCHANNELS];
+  unsigned int SG[NCHANNELS];
+  unsigned int FL[NCHANNELS];
+  unsigned int FG[NCHANNELS];
+  unsigned int TH[NCHANNELS];
+  unsigned int TL[NCHANNELS];
+  unsigned int TD[NCHANNELS];
+  unsigned int GW[NCHANNELS];
+  unsigned int GD[NCHANNELS];
+
+
+};
 
 
 
-int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct PixieNetFippiConfig *config);
+/** Parses the provided ini file into the provided PixieNetFipiConfig struct.
+    \returns 0 upon success.
+ 
+    Note that current requires that for each member variable of 
+    PixieNetFipiConfig, the configuration file must have a line starting with 
+    that identifier string, and followed by the expected number of numeric
+    values.
+ 
+    Blank lines, or lines starting with a '#' character are skipped, as are
+    any lines with unrecognized identifiers.
+ 
+    Integer numeric values that start with a '0x' prefix are assumed to be 
+    hexidecimal.
+ 
+    Currently does not due any range checking!  This is left to progfippi.
+
+ */
+int init_PixieNetFippiConfig_from_file( const char * const filename,
+                                       int ignore_missing,
+                                       struct PixieNetFippiConfig *config );
+  
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+
+
+int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct PixieNetFippiConfig *config, struct  DigitizerFPGAUnit *fpgapar);
   
   
 void PrintInterface();
 
-void RunManagerInit(DigitizerRun_t *RunManager);
+void RunManagerInit(struct DigitizerRun_t *RunManager);
 
-void CheckKeyboard(DigitizerRun_t *PKU_DGTZ_RunManager);
+void CheckKeyboard(struct DigitizerRun_t *PKU_DGTZ_RunManager);
 
 int kbhit();
 
@@ -341,7 +358,11 @@ void Sleep(int t);
 // Get time in milliseconds     return  time in msec 
 long get_time();
 
-  void DoInTerminal(char *terminal);
+void DoInTerminal(char *terminal);
+
+void ReadParFileAndInitFPGA(volatile unsigned int *mapped, struct PixieNetFippiConfig *config, struct  DigitizerFPGAUnit *fpgapar);
+
+
 
 #ifdef __cplusplus
 }

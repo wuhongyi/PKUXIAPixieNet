@@ -46,7 +46,7 @@
 #include <sys/mman.h>
 #include <stdint.h>
 #include <inttypes.h>
-
+#include <math.h>
 #include <sys/stat.h>//stat(const char *file_name,struct stat *buf)
 #include <termios.h> // tcgetattr(), tcsetattr()
 #include <sys/time.h> // struct timeval, select()
@@ -63,6 +63,15 @@
 
 #include "PixieNetDefs.h"
 #include "PixieNetConfig.h"
+// #include "PixieNetCommon.h"
+#ifdef __cplusplus
+extern "C"
+#endif
+{
+#include "PixieNetCommon.h"
+#ifdef __cplusplus
+}
+#endif
 
 #include "wuReadData.hh"
 
@@ -900,7 +909,7 @@ int init_PixieNetFippiConfig_from_file( const char * const filename,
 
 
 
-int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct PixieNetFippiConfig *config)
+int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct PixieNetFippiConfig *config,struct  DigitizerFPGAUnit *fpgapar)
 {
   int set;
   vector<int>* setsint = new vector<int>;
@@ -909,25 +918,67 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
 
   config->NUMBER_CHANNELS = wuReadData::ReadValue<unsigned int>("NUMBER_CHANNELS",std::string(filename));
   // std::cout<<"NUMBER_CHANNELS  "<<config->NUMBER_CHANNELS<<std::endl;
+  if(config->NUMBER_CHANNELS != NCHANNELS) 
+    {
+      printf("Invalid NUMBER_CHANNELS = %d, should be %d\n",config->NUMBER_CHANNELS,NCHANNELS);
+      return -1;
+    }
 
   config->SYNC_AT_START = wuReadData::ReadValue<unsigned int>("SYNC_AT_START",std::string(filename));
   // std::cout<<"SYNC_AT_START  "<<config->SYNC_AT_START<<std::endl;
+  if(config->SYNC_AT_START > 1) 
+    {
+      printf("Invalid SYNC_AT_START = %d, can only be 0 and 1\n",config->SYNC_AT_START);
+      return -1;
+    }
+
 
   config->AUX_CTRL = wuReadData::ReadValue<unsigned int>("AUX_CTRL",std::string(filename));
   // std::cout<<"AUX_CTRL  "<<config->AUX_CTRL<<std::endl;
+  if(config->AUX_CTRL > 65535) 
+    {
+      printf("Invalid AUX_CTRL = 0x%x\n",config->AUX_CTRL);
+      return -1;
+    }
+
 
   config->SERIAL_IO = wuReadData::ReadValue<unsigned int>("SERIAL_IO",std::string(filename));
   // std::cout<<"SERIAL_IO  "<<config->SERIAL_IO<<std::endl;
+  if(config->SERIAL_IO > 65535) 
+    {
+      printf("Invalid SERIAL_IO = 0x%x\n",config->SERIAL_IO);
+      return -1;
+    }
+
 
   config->COINCIDENCE_WINDOW = wuReadData::ReadValue<double>("COINCIDENCE_WINDOW",std::string(filename));
   // std::cout<<"COINCIDENCE_WINDOW  "<<config->COINCIDENCE_WINDOW<<std::endl;
+  fpgapar->CW = (int)floorf(config->COINCIDENCE_WINDOW*SYSTEM_CLOCK_MHZ);       // multiply time in us *  # ticks per us = time in ticks
+  if( (fpgapar->CW > MAX_CW) | (fpgapar->CW < MIN_CW) ) 
+    {
+      printf("Invalid COINCIDENCE_WINDOW = %f, must be between %f and %f us\n",config->COINCIDENCE_WINDOW, (double)MIN_CW/SYSTEM_CLOCK_MHZ, (double)MAX_CW/SYSTEM_CLOCK_MHZ);
+      return -1;
+    }
+
 
   config->HV_DAC = wuReadData::ReadValue<double>("HV_DAC",std::string(filename));
   // std::cout<<"HV_DAC  "<<config->HV_DAC<<std::endl;
+  int mval = (int)floor((config->HV_DAC/5.0) * 65535);		// map 0..5V range to 0..64K	
+  if(mval > 65535) 
+    {
+      printf("Invalid HV_DAC = %f, can only be between 0 and 5V\n",config->HV_DAC);
+      return -1;
+    }
+
 
   config->FILTER_RANGE = wuReadData::ReadValue<unsigned int>("FILTER_RANGE",std::string(filename));
   // std::cout<<"FILTER_RANGE  "<<config->FILTER_RANGE<<std::endl;
-
+  fpgapar->FR = config->FILTER_RANGE;
+  if( (fpgapar->FR > MAX_FR) | (fpgapar->FR < MIN_FR) )
+    {
+      printf("Invalid FILTER_RANGE = %d, must be between %d and %d\n",fpgapar->FR,MIN_FR, MAX_FR);
+      return -1;
+    }
 
   config->MODULE_CSRA = 0;
   set = wuReadData::ReadValue<int>("MCSRA_CWGROUP_00",std::string(filename));
@@ -937,6 +988,12 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   set = wuReadData::ReadValue<int>("MCSRA_FPPEDGE_07",std::string(filename));
   config->MODULE_CSRA = SetOrClrBit(7, config->MODULE_CSRA, set); 
   // std::cout<<"MODULE_CSRA  "<<hex<<config->MODULE_CSRA<<std::endl;
+  if(config->MODULE_CSRA > 65535) 
+    {
+      printf("Invalid MODULE_CSRA = 0x%x\n",config->MODULE_CSRA);
+      return -1;
+    }
+
 
   config->MODULE_CSRB = 0;
   set = wuReadData::ReadValue<int>("MCSRB_TERM01_01",std::string(filename));
@@ -952,6 +1009,11 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   set = wuReadData::ReadValue<int>("MCSRB_PDCH3_07",std::string(filename));
   config->MODULE_CSRB = SetOrClrBit(7, config->MODULE_CSRB, set); 
   // std::cout<<"MODULE_CSRB  "<<hex<<config->MODULE_CSRB<<std::endl;
+  if(config->MODULE_CSRB > 65535)
+    {
+      printf("Invalid MODULE_CSRB = 0x%x\n",config->MODULE_CSRB);
+      return -1;
+    }
 
 
   config->COINCIDENCE_PATTERN = 0;
@@ -987,6 +1049,11 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   config->COINCIDENCE_PATTERN = SetOrClrBit(14, config->COINCIDENCE_PATTERN, set); 
   set = wuReadData::ReadValue<int>("COINC_PATTERN_1111",std::string(filename));
   config->COINCIDENCE_PATTERN = SetOrClrBit(15, config->COINCIDENCE_PATTERN, set); 
+  if(config->COINCIDENCE_PATTERN > 65535)
+    {
+      printf("Invalid COINCIDENCE_PATTERN = 0x%x\n",config->COINCIDENCE_PATTERN);
+      return -1;
+    }
   set = wuReadData::ReadValue<int>("COINC_PATTERN_bit16",std::string(filename));
   config->COINCIDENCE_PATTERN = SetOrClrBit(16, config->COINCIDENCE_PATTERN, set); 
   set = wuReadData::ReadValue<int>("COINC_PATTERN_bit17",std::string(filename));
@@ -1046,6 +1113,7 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
   for( int i = 0; i < NCHANNELS; ++i )
     config->CHANNEL_CSRA[i] = SetOrClrBit(12, config->CHANNEL_CSRA[i], setsint->at(i)); 
+
 
 
   setsint->clear();
@@ -1126,6 +1194,20 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   for( int i = 0; i < NCHANNELS; ++i )
     config->CHANNEL_CSRC[i] = SetOrClrBit(15, config->CHANNEL_CSRC[i], setsint->at(i)); 
 
+  for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      if(config->CHANNEL_CSRA[k] > 65535) 
+	{
+	  printf("Invalid CHANNEL_CSRA = 0x%x\n",config->CHANNEL_CSRA[k]);
+	  return -1;
+	} 
+      if(config->CHANNEL_CSRC[k] > 65535) 
+	{
+	  printf("Invalid CHANNEL_CSRC = 0x%x\n",config->CHANNEL_CSRC[k]);
+	  return -1;
+	}  
+    }
+
 
   setsdouble->clear();
   retn = wuReadData::ReadVector("ENERGY_RISETIME",std::string(filename),setsdouble);
@@ -1136,6 +1218,31 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   retn = wuReadData::ReadVector("ENERGY_FLATTOP",std::string(filename),setsdouble);
   // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
   for( int i = 0; i < NCHANNELS; ++i ) config->ENERGY_FLATTOP[i] = setsdouble->at(i);
+
+  for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      fpgapar->SL[k] = (int)floorf(config->ENERGY_RISETIME[k] * FILTER_CLOCK_MHZ);
+      fpgapar->SL[k] = fpgapar->SL[k] >> fpgapar->FR;
+      if(fpgapar->SL[k] < MIN_SL) 
+	{
+	  printf("Invalid ENERGY_RISETIME = %f, minimum %f us at this filter range\n",config->ENERGY_RISETIME[k],(double)((MIN_SL<<fpgapar->FR)/FILTER_CLOCK_MHZ));
+	  return -1;
+	} 
+      fpgapar->SG[k] = (int)floorf(config->ENERGY_FLATTOP[k] * FILTER_CLOCK_MHZ);
+      fpgapar->SG[k] = fpgapar->SG[k] >> fpgapar->FR;
+      if(fpgapar->SG[k] < MIN_SG) 
+	{
+	  printf("Invalid ENERGY_FLATTOP = %f, minimum %f us at this filter range\n",config->ENERGY_FLATTOP[k],(double)((MIN_SG<<fpgapar->FR)/FILTER_CLOCK_MHZ));
+	  return -1;
+	} 
+      if( (fpgapar->SL[k]+fpgapar->SG[k]) > MAX_SLSG) 
+	{
+	  printf("Invalid combined energy filter, maximum %f us at this filter range\n",(double)((MAX_SLSG<<fpgapar->FR)/FILTER_CLOCK_MHZ));
+	  return -1;
+	} 
+    }
+
+
 
   setsdouble->clear();
   retn = wuReadData::ReadVector("TRIGGER_RISETIME",std::string(filename),setsdouble);
@@ -1152,16 +1259,64 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
   for( int i = 0; i < NCHANNELS; ++i ) config->TRIGGER_THRESHOLD[i] = setsdouble->at(i);
 
+  for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      fpgapar->FL[k] = (int)floorf(config->TRIGGER_RISETIME[k] * FILTER_CLOCK_MHZ);
+      if(fpgapar->FL[k] < MIN_FL) 
+	{
+	  printf("Invalid TRIGGER_RISETIME = %f, minimum %f us\n",config->TRIGGER_RISETIME[k],(double)(MIN_FL/FILTER_CLOCK_MHZ));
+	  return -1;
+	} 
+      fpgapar->FG[k] = (int)floorf(config->TRIGGER_FLATTOP[k] * FILTER_CLOCK_MHZ);
+      if(fpgapar->FG[k] < MIN_FL) 
+	{
+	  printf("Invalid TRIGGER_FLATTOP = %f, minimum %f us\n",config->TRIGGER_FLATTOP[k],(double)(MIN_FG/FILTER_CLOCK_MHZ));
+	  return -1;
+	} 
+      if( (fpgapar->FL[k]+fpgapar->FG[k]) > MAX_FLFG) 
+	{
+	  printf("Invalid combined trigger filter, maximum %f us\n",(double)(MAX_FLFG/FILTER_CLOCK_MHZ));
+	  return -1;
+	} 
+      fpgapar->TH[k] = (int)floor(config->TRIGGER_THRESHOLD[k]*fpgapar->FL[k]/8.0);
+      if(fpgapar->TH[k] > MAX_TH)     
+	{
+	  printf("Invalid TRIGGER_THRESHOLD = %f, maximum %f at this trigger filter rise time\n",config->TRIGGER_THRESHOLD[k],MAX_TH*8.0/(double)fpgapar->FL[k]);
+	  return -1;
+	} 
+    }
+
+
 
   setsdouble->clear();
   retn = wuReadData::ReadVector("ANALOG_GAIN",std::string(filename),setsdouble);
   // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
   for( int i = 0; i < NCHANNELS; ++i ) config->ANALOG_GAIN[i] = setsdouble->at(i);
 
+  // current version only has 2 gains: 2 and 5. applied via I2C below, only save bit pattern here
+  for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      if( !( (config->ANALOG_GAIN[k] == GAIN_HIGH)  || (config->ANALOG_GAIN[k] == GAIN_LOW)   ) ) 
+	{
+	  printf("ANALOG_GAIN = %f not matching available gains exactly, rounding to nearest\n",config->ANALOG_GAIN[k]);
+	}
+    }
+
   setsdouble->clear();
   retn = wuReadData::ReadVector("VOFFSET",std::string(filename),setsdouble);
   // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
   for( int i = 0; i < NCHANNELS; ++i ) config->VOFFSET[i] = setsdouble->at(i);
+
+  for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      int dac = (int)floor((1 - config->VOFFSET[k]/ V_OFFSET_MAX) * 32768);	
+      if(dac > 65535)  
+	{
+	  printf("Invalid VOFFSET = %f, must be between %f and -%f\n",config->VOFFSET[k], V_OFFSET_MAX-0.05, V_OFFSET_MAX-0.05);
+	  return -1;
+	}
+    }
+
 
   setsdouble->clear();
   retn = wuReadData::ReadVector("TRACE_LENGTH",std::string(filename),setsdouble);
@@ -1173,10 +1328,42 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
   for( int i = 0; i < NCHANNELS; ++i ) config->TRACE_DELAY[i] = setsdouble->at(i);
 
+  for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      fpgapar->TL[k] = BLOCKSIZE_400*(int)floor(config->TRACE_LENGTH[k]*ADC_CLK_MHZ/BLOCKSIZE_400);       // multiply time in us *  # ticks per us = time in ticks; must be multiple of BLOCKSIZE_400
+      if(fpgapar->TL[k] > MAX_TL)  
+	{
+	  printf("Invalid TRACE_LENGTH = %f, maximum %f us\n",config->TRACE_LENGTH[k],(double)MAX_TL/ADC_CLK_MHZ);
+	  return -1;
+	}
+      if(fpgapar->TL[k] < config->TRACE_LENGTH[k]*ADC_CLK_MHZ)  
+	{
+	  printf("TRACE_LENGTH[%d] will be rounded off to = %f us, %d samples\n",k,(double)fpgapar->TL[k]/ADC_CLK_MHZ,fpgapar->TL[k]);
+	}
+      fpgapar->TD[k] = (int)floor(config->TRACE_DELAY[k]*ADC_CLK_MHZ);       // multiply time in us *  # ticks per us = time in ticks
+      if(fpgapar->TD[k] > MAX_TL-TWEAK_UD)  
+	{
+	  printf("Invalid TRACE_DELAY = %f, maximum %f us\n",config->TRACE_DELAY[k],(double)(MAX_TL-TWEAK_UD)/ADC_CLK_MHZ);
+	  return -1;
+	}
+    }
+
+
   setsint->clear();
   retn = wuReadData::ReadVector("PSA_THRESHOLD",std::string(filename),setsint);
   // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
   for( int i = 0; i < NCHANNELS; ++i ) config->PSA_THRESHOLD[i] = (unsigned int)setsint->at(i);
+
+  for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      if(config->PSA_THRESHOLD[k] > MAX_PSATH) 
+	{
+	  printf("Invalid PSA_THRESHOLD = %d, maximum %d\n",config->PSA_THRESHOLD[k],MAX_PSATH);
+	  return -1;                                                       
+	}
+    }
+
+
 
   setsdouble->clear();
   retn = wuReadData::ReadVector("GATE_WINDOW",std::string(filename),setsdouble);
@@ -1188,10 +1375,37 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
   for( int i = 0; i < NCHANNELS; ++i ) config->GATE_DELAY[i] = setsdouble->at(i);
 
+  for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      fpgapar->GW[k] = (int)floor(config->GATE_WINDOW[k] * FILTER_CLOCK_MHZ);
+      if(fpgapar->GW[k] > MAX_GW)
+	{
+	  printf("Invalid GATE_WINDOW = %f, maximum %d us\n",config->GATE_WINDOW[k],MAX_GW/FILTER_CLOCK_MHZ);
+	  return -1;
+	}
+      fpgapar->GD[k] = (int)floor(config->GATE_DELAY[k]*FILTER_CLOCK_MHZ);
+      if(fpgapar->GD[k] > MAX_GD) 
+	{
+	  printf("Invalid GATE_DELAY = %f, maximum %d us\n",config->GATE_DELAY[k],MAX_GD/FILTER_CLOCK_MHZ);
+	  return -1;
+	}
+    }
+
+
   setsdouble->clear();
   retn = wuReadData::ReadVector("COINC_DELAY",std::string(filename),setsdouble);
   // std::cout<<setsdouble->at(0)<<"  "<<setsdouble->at(1)<<"  "<<setsdouble->at(2)<<"  "<<setsdouble->at(3)<<std::endl;
   for( int i = 0; i < NCHANNELS; ++i ) config->COINC_DELAY[i] = setsdouble->at(i);
+
+  for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      mval = (int)floor(config->COINC_DELAY[k] * ADC_CLK_MHZ);    
+      if(mval > MAX_CD) 
+	{
+	  printf("Invalid COINC_DELAY = %f, maximum %d us\n",config->COINC_DELAY[k],MAX_CD/ADC_CLK_MHZ);
+	  return -1;
+	}
+    }
 
 
   setsint->clear();
@@ -1213,6 +1427,36 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   retn = wuReadData::ReadVector("QDC1_DELAY",std::string(filename),setsint);
   // std::cout<<setsint->at(0)<<"  "<<setsint->at(1)<<"  "<<setsint->at(2)<<"  "<<setsint->at(3)<<std::endl;
   for( int i = 0; i < NCHANNELS; ++i ) config->QDC1_DELAY[i] = (unsigned int)setsint->at(i);
+
+  for(int k = 0; k < NCHANNELS; k ++ )
+    { 
+      if(config->QDC0_LENGTH[k] > MAX_QDCL)    
+	{
+	  printf("Invalid QDC0_LENGTH = %d, maximum %d samples \n",config->QDC0_LENGTH[k],MAX_QDCL);
+	  return -1;
+	} 
+      if(config->QDC0_LENGTH[k]+config->QDC0_DELAY[k] > MAX_QDCLD)    
+	{
+	  printf("Invalid QDC0_DELAY = %d, maximum length plus delay %d samples \n",config->QDC0_DELAY[k],MAX_QDCLD);
+	  return -1;
+	} 
+      if(config->QDC1_LENGTH[k] > MAX_QDCL)    
+	{
+	  printf("Invalid QDC1_LENGTH = %d, maximum %d samples \n",config->QDC1_LENGTH[k],MAX_QDCL);
+	  return -1;
+	} 
+      if(config->QDC1_LENGTH[k]+config->QDC1_DELAY[k] > MAX_QDCLD)    
+	{
+	  printf("Invalid QDC1_DELAY = %d, maximum length plus delay %d samples \n",config->QDC1_DELAY[k],MAX_QDCLD);
+	  return -1;
+	} 
+      if(config->QDC0_LENGTH[k]+config->QDC0_DELAY[k] > config->QDC1_LENGTH[k]+config->QDC1_DELAY[k])   
+	{
+	  printf("Invalid QDC1_DELAY/_LENGTH; must finish later than QDC0 \n");
+	  return -1;
+	} 
+    }
+
 
   setsint->clear();
   retn = wuReadData::ReadVector("QDC_DIV8",std::string(filename),setsint);
@@ -1248,7 +1492,7 @@ void PrintInterface()
 }
 
 
-void RunManagerInit(DigitizerRun_t *RunManager)
+void RunManagerInit(struct DigitizerRun_t *RunManager)
 {
   RunManager->RunNumber = -1;
   RunManager->FileNo = -1;
@@ -1272,7 +1516,7 @@ void RunManagerInit(DigitizerRun_t *RunManager)
   // RunManager->PlotChooseN = ReadValue<int>("PlotChooseN",PKU_DGTZ_GlobalParametersFileName);
 }
 
-void CheckKeyboard(DigitizerRun_t *PKU_DGTZ_RunManager)
+void CheckKeyboard(struct DigitizerRun_t *PKU_DGTZ_RunManager)
 {
   int b;
 
@@ -1385,3 +1629,265 @@ long get_time()
   time_ms = (t1.tv_sec) * 1000 + t1.tv_usec / 1000;
   return time_ms;
 }
+
+void ReadParFileAndInitFPGA(volatile unsigned int *mapped, struct PixieNetFippiConfig *config, struct  DigitizerFPGAUnit *fpgapar)
+{
+  unsigned int  mval;
+  int addr;
+
+  unsigned int saveR2[NCHANNELS];
+  unsigned int gain[NCHANNELS*2];
+  unsigned int PSAM, PSEP;
+  unsigned int QDCL0[NCHANNELS], QDCL1[NCHANNELS], QDCD0[NCHANNELS], QDCD1[NCHANNELS];
+  unsigned int i2cdata[8];
+
+  // Init
+
+  // first, set CSR run control options   
+  mapped[ACSRIN] = 0x0000; // all off
+  mapped[AOUTBLOCK] = OB_IOREG;	  // read from IO block
+
+  mval = config->COINCIDENCE_PATTERN;
+  mapped[ACOINCPATTERN] = mval;
+  if(mapped[ACOINCPATTERN] != mval) printf("Error writing value COINCIDENCE_PATTERN register\n");
+     
+  mval = (int)floor( (config->HV_DAC/5.0) * 65535);		// map 0..5V range to 0..64K	
+  mapped[AHVDAC] = mval;
+  if(mapped[AHVDAC] != mval) printf("Error writing to HV_DAC register\n");
+  usleep(DACWAIT);		// wait for programming
+  mapped[AHVDAC] = mval;     // repeat, sometimes doesn't take?
+  if(mapped[AHVDAC] != mval) printf("Error writing to HV_DAC register\n");
+  usleep(DACWAIT);
+
+  mapped[ASERIALIO] = config->SERIAL_IO;
+  if(mapped[ASERIALIO] != config->SERIAL_IO) printf("Error writing to SERIAL_IO register\n");
+  usleep(DACWAIT);		// wait for programming
+
+  mapped[AAUXCTRL] = config->AUX_CTRL;
+  if(mapped[AAUXCTRL] != config->AUX_CTRL) printf("Error writing AUX_CTRL register\n");
+
+  for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      addr = N_PL_IN_PAR+k*N_PL_IN_PAR;   // channel registers begin after NPLPAR system registers, NPLPAR each
+      mval = (config->CHANNEL_CSRA[k] + (config->CHANNEL_CSRC[k] << 16));
+      mapped[addr+0] = mval;
+      if(mapped[addr+0] != mval) printf("Error writing to CHANNEL_CSR register\n");
+    }
+
+    for(int k = 0; k < NCHANNELS; k ++ )
+    {
+      mval = fpgapar->SL[k]-1;
+      mval = mval + ((fpgapar->SL[k]+fpgapar->SG[k]-1)     <<  8);
+      mval = mval + ((fpgapar->SG[k]-1)           << 16);
+      mval = mval + (((2*fpgapar->SL[k]+fpgapar->SG[k])/4) << 24);
+      addr = N_PL_IN_PAR+k*N_PL_IN_PAR;   // channel registers begin after NPLPAR system registers, NPLPAR each
+      mapped[addr+1] = mval;
+      if(mapped[addr+1] != mval) printf("Error writing parameters to ENERGY_FILTER register\n");
+    }
+
+    for(int k = 0; k < NCHANNELS; k ++ )
+      {
+	mval = fpgapar->FL[k]-1;
+	mval = mval + ((fpgapar->FL[k]+fpgapar->FG[k]-1) << 8);
+	mval = mval + ((fpgapar->TH[k]) << 16);
+	mval = mval + ((fpgapar->FR) << 26);
+	saveR2[k] = mval;
+	mval = mval + (1 << 31); 
+	addr = N_PL_IN_PAR+k*N_PL_IN_PAR;   // channel registers begin after NPLPAR system registers, NPLPAR each
+	mapped[addr+2] = mval;
+	if(mapped[addr+2] != mval) printf("Error writing parameters to trigger filter register\n");
+      }
+
+    for(int k = 0; k < NCHANNELS; k ++ )
+      {
+	if(config->ANALOG_GAIN[k] > (GAIN_HIGH+GAIN_LOW)/2 ) 
+	  {
+	    gain[2*k+1] = 1;      // 2'b10 = gain 5
+	    gain[2*k]   = 0;   
+	  }
+	else  
+	  {
+	    gain[2*k+1] = 0;      
+	    gain[2*k]   = 1;      // 2'b01 = gain 2
+	  }
+	PSAM = fpgapar->SL[k]+fpgapar->SG[k]-5;       
+	PSEP = (PSAM+6) * (1 << fpgapar->FR);
+	PSEP = 8192 - PSEP;
+	mval = PSAM;
+	mval = mval + (PSEP        << 13);
+	mval = mval + (gain[2*k]   << 26);
+	mval = mval + (gain[2*k+1] << 27);
+	addr = N_PL_IN_PAR+k*N_PL_IN_PAR;   // channel registers begin after NPLPAR system registers, NPLPAR each
+	mapped[addr+3] = mval;
+	if(mapped[addr+3] != mval) printf("Error writing parameters to gain register\n");
+	// no limits for DIG_GAIN
+      }
+
+   for(int k = 0; k < NCHANNELS; k ++ )
+   {
+      unsigned int dac = (int)floor((1 - config->VOFFSET[k]/ V_OFFSET_MAX) * 32768);	
+      mval = dac;
+      addr = N_PL_IN_PAR+k*N_PL_IN_PAR;   // channel registers begin after NPLPAR system registers, NPLPAR each
+      mapped[addr+4] = mval;
+      if(mapped[addr+4] != mval) printf("Error writing parameters to DAC register\n");
+      usleep(DACWAIT);		// wait for programming
+      mapped[addr+4] = mval;     // repeat, sometimes doesn't take?
+      if(mapped[addr+4] != mval) printf("Error writing parameters to DAC register\n");
+      usleep(DACWAIT);     
+   }
+
+   for(int k = 0; k < NCHANNELS; k ++ )
+   {
+      mval = (fpgapar->TD[k]+TWEAK_UD)/4;           // add tweak to accomodate trigger pipelining delay
+      mval = mval + (fpgapar->TL[k]>0)*(1<<29);     // set bit 29 if TL is not zero
+      addr = N_PL_IN_PAR+k*N_PL_IN_PAR;   // channel registers begin after NPLPAR system registers, NPLPAR each
+      mapped[addr+5] = mval;
+      if(mapped[addr+5] != mval) printf("Error writing parameters to TRACE1 register");
+   
+      mval = fpgapar->TL[k]/4;
+      mval = mval + (fpgapar->CW       <<  16);
+      mval = mval + (config->PSA_THRESHOLD[k]  <<  24);  // 
+      mapped[addr+6] = mval;
+      if(mapped[addr+6] != mval) printf("Error writing parameters to TRACE2 register");
+   }
+
+   for(int k = 0; k < NCHANNELS; k ++ )
+     {
+       mval = fpgapar->GW[k];
+       mval = mval + (fpgapar->GD[k]    <<  8);
+       addr = N_PL_IN_PAR+k*N_PL_IN_PAR;   // channel registers begin after NPLPAR system registers, NPLPAR each     
+       mapped[addr+7] = mval;
+       if(mapped[addr+7] != mval) printf("Error writing parameters to GATE register");
+     }
+
+   for(int k = 0; k < NCHANNELS; k ++ )
+   {
+      mval = (int)floor( config->COINC_DELAY[k] * ADC_CLK_MHZ);    
+      addr = N_PL_IN_PAR+k*N_PL_IN_PAR;   // channel registers begin after NPLPAR system registers, NPLPAR each     
+      mapped[addr+9] = mval;
+      if(mapped[addr+9] != mval) printf("Error writing parameters to COINC_DELAY register");
+   }
+
+   for(int k = 0; k < NCHANNELS; k ++ )
+   { 
+      // 250 MHz implementation works on 2 samples at a time, so divide by 2
+      QDCL0[k] = (int)floorf( config->QDC0_LENGTH[k]/2.0)+1;  
+      QDCD0[k] = config->QDC0_DELAY[k] + QDCL0[k]*2;
+      QDCL1[k] = (int)floorf( config->QDC1_LENGTH[k]/2.0)+1;
+      QDCD1[k] = config->QDC1_DELAY[k] + QDCL1[k]*2;
+      mval = QDCL0[k];
+      mval = mval + (QDCD0[k] <<  7);
+      mval = mval + (QDCL1[k] <<  16);
+      mval = mval + (QDCD1[k] <<  23);
+      mval = mval + (1<<15);     // set bit 15 for 2x correction for QDC0 (always)
+      mval = mval + (1<<31);     // set bit 31 for 2x correction for QDC1 (always)
+      if( config->QDC_DIV8[k])  {
+         mval = mval | (1<<5);      // set bits to divide result by 8
+         mval = mval | (1<<21);
+      }
+
+      // optional division by 8 of output sums not implemented, controlled by MCSRB bits
+      addr = N_PL_IN_PAR+k*N_PL_IN_PAR;   // channel registers begin after NPLPAR system registers, NPLPAR each     
+      mapped[addr+10] = mval;
+      if(mapped[addr+10] != mval) printf("Error writing parameters to QDC register");
+   }
+
+
+   // restart/initialize filters 
+   usleep(100);      // wait for filter FIFOs to clear, really should be longest SL+SG
+   for(int k = 0; k < NCHANNELS; k ++ )
+     {
+       addr = 16+k*16;
+       mapped[addr+2] = saveR2[k];       // restart filters with the halt bit in R2 set to zero
+     }
+   usleep(100);      // really should be longest SL+SG
+   mapped[ADSP_CLR] = 1;
+   mapped[ARTC_CLR] = 1;
+
+
+
+   // ************************ I2C programming *********************************
+   // gain and termination applied across all channels via FPGA's I2C
+   // TODO
+   // I2C connects to gain enables, termination relays, thermometer, PROM (with s/n etc), optional external
+
+   // ---------------------- program gains -----------------------
+
+   I2Cstart(mapped);
+
+   // I2C addr byte
+   i2cdata[7] = 0;
+   i2cdata[6] = 1;
+   i2cdata[5] = 0;
+   i2cdata[4] = 0;
+   i2cdata[3] = 0;   // A2
+   i2cdata[2] = 1;   // A1
+   i2cdata[1] = 0;   // A0
+   i2cdata[0] = 0;   // R/W*
+   I2Cbytesend(mapped, i2cdata);
+   I2Cslaveack(mapped);
+
+   // I2C data byte
+   for(int k = 0; k <8; k++ )     // NCHANNELS*2 gains, but 8 I2C bits
+     {
+       i2cdata[k] = gain[k];
+     }
+   I2Cbytesend(mapped, i2cdata);
+   I2Cslaveack(mapped);
+
+   // I2C data byte
+   I2Cbytesend(mapped, i2cdata);      // send same bits again for enable?
+   I2Cslaveack(mapped);
+
+   I2Cstop(mapped);
+
+   // ---------------------- program termination -----------------------
+
+   I2Cstart(mapped);
+
+   // I2C addr byte
+   i2cdata[7] = 0;
+   i2cdata[6] = 1;
+   i2cdata[5] = 0;
+   i2cdata[4] = 0;
+   i2cdata[3] = 0;   // A2
+   i2cdata[2] = 0;   // A1
+   i2cdata[1] = 1;   // A0
+   i2cdata[0] = 0;   // R/W*
+   I2Cbytesend(mapped, i2cdata);
+   I2Cslaveack(mapped);
+
+   // I2C data byte
+   // settings taken from MCSRB
+   i2cdata[7] = (config->MODULE_CSRB & 0x0080) >> 7 ;    // power down ADC driver D, NYI
+   i2cdata[6] = (config->MODULE_CSRB & 0x0040) >> 6 ;    // power down ADC driver C, NYI
+   i2cdata[5] = (config->MODULE_CSRB & 0x0020) >> 5 ;    // power down ADC driver B, NYI
+   i2cdata[4] = (config->MODULE_CSRB & 0x0010) >> 4 ;    // power down ADC driver A, NYI
+   i2cdata[3] = (config->MODULE_CSRB & 0x0008) >> 3 ;    //unused
+   i2cdata[2] = (config->MODULE_CSRB & 0x0004) >> 2 ;    // term. CD
+   i2cdata[1] = (config->MODULE_CSRB & 0x0002) >> 1 ;    // term. AB
+   i2cdata[0] = (config->MODULE_CSRB & 0x0001)      ;    //unused
+   I2Cbytesend(mapped, i2cdata);
+   I2Cslaveack(mapped);
+
+   // I2C data byte
+   I2Cbytesend(mapped, i2cdata);      // send same bits again for enable?
+   I2Cslaveack(mapped);
+
+   I2Cstop(mapped);
+
+  
+   // ************************ end I2C *****************************************
+
+   // ADC board temperature
+   printf("ADC board temperature: %d C \n",(int)board_temperature(mapped) );
+
+   // ***** ZYNQ temperature
+   printf("Zynq temperature: %d C \n",(int)zynq_temperature() );
+
+   // ***** check HW info *********
+   if(hwinfo(mapped)==0) printf("WARNING: HW may be incompatible with this SW/FW \n");
+
+
+}
+

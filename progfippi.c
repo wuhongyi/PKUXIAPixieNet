@@ -200,6 +200,7 @@ int main(void) {
          (fippiconfig.RUN_TYPE == 0x301)   )     // set MCA/notrace bit
          mval = mval | 0x20000;
 
+     //wuhongyi
     if(fippiconfig.MODULE_CSRA & 0x0001)   // test bit 0 (CWGROUP)
         mval = mval | 0x40000;             // set CWGROUP bit
          

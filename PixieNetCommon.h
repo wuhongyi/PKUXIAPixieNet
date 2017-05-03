@@ -48,4 +48,3 @@ float board_temperature( volatile unsigned int *mapped );
 float zynq_temperature();
 
 
-

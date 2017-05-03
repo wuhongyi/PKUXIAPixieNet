@@ -4,9 +4,9 @@
 // Author: Hongyi Wu(吴鸿毅)
 // Email: wuhongyi@qq.com 
 // Created: Mon May  1 10:49:37 2017 (+0000)
-// Last-Updated: Tue May  2 14:02:18 2017 (+0000)
+// Last-Updated: Wed May  3 14:58:26 2017 (+0000)
 //           By: Hongyi Wu(吴鸿毅)
-//     Update #: 10
+//     Update #: 28
 // URL: http://wuhongyi.cn 
 
 #include <stdio.h>
@@ -18,6 +18,7 @@
 #include <math.h>
 #include <time.h>
 #include <signal.h>
+#include <assert.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -25,8 +26,10 @@
 // need to compile with -lm option
 
 #include "PixieNetDefs.h"
-#include "PixieNetCommon.h"
+// #include "PixieNetCommon.h"
 #include "PixieNetConfig.h"
+
+
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -40,14 +43,15 @@ int main(int argc, char *argv[])
   unsigned int SyncT;
   int rval;
 
+
   // ******************* read ini file and fill struct with values ********************
   
   PixieNetFippiConfig fippiconfig;		// struct holding the input parameters
   DigitizerRun_t PKU_DGTZ_RunManager;
-
+  DigitizerFPGAUnit fpgaunitpar;
 
   const char *settings_file = "settings/pkupar.txt";
-  rval = PKU_init_PixieNetFippiConfig_from_file(settings_file, &fippiconfig);   // second override with user settings, do allow missing
+  rval = PKU_init_PixieNetFippiConfig_from_file(settings_file, &fippiconfig,&fpgaunitpar);   // second override with user settings, do allow missing
   if( rval != 0 )
     {
       printf( "Failed to parse FPGA settings from %s, rval=%d\n", settings_file, rval );
@@ -56,8 +60,6 @@ int main(int argc, char *argv[])
 
   // assign to local variables, including any rounding/discretization
   SyncT = fippiconfig.SYNC_AT_START;
-
-
 
 
   // *************** PS/PL IO initialization *********************
@@ -83,6 +85,21 @@ int main(int argc, char *argv[])
   }
 
   mapped = (unsigned int *) map_addr;
+
+
+  // Init FPGA
+  ReadParFileAndInitFPGA(mapped,&fippiconfig,&fpgaunitpar);
+
+
+
+
+
+
+
+
+
+
+
 
 
   // ********************** Run Start **********************
