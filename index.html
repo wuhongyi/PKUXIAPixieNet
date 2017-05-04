@@ -1,66 +1,80 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>XIA Pixie-Net DAQ Online</title>
-<style type="text/css">
-	body { background-color:#d0d0d0; font-family:sans-serif; }
-	div.box { background-color:#ffffff; width:500px; margin:20px auto 50px; padding:50px; border-radius:10px; border:1px solid #808080; box-shadow:8px 15px 20px #404040 }
-	img.logo { float:right; margin:-10px 0 0 30px }
-	h1 { margin:0; font-size:24px }
-	h2 { margin-top:40px; font-size:20px; font-weight:normal; border-bottom:1px solid #ff9040 }
-	p { font-size:14px }
-	li { font-size:14px }
-	a { color:#6060d0; text-decoration:none }
-	a:hover { text-decoration:underline }
-</style>
-</head>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>XIA Pixie-Net DAQ </title>
+    <style type="text/css">
+      body { background-color:#d0d0d0; font-family:sans-serif; }
+      div.box { background-color:#ffffff; width:500px; margin:20px auto 50px; padding:50px; border-radius:10px; border:1px solid #808080; box-shadow:8px 15px 20px #404040 }
+      img.logo { float:right; margin:-10px 0 0 30px }
+      h1 { margin:0; font-size:24px }
+      h2 { margin-top:40px; font-size:20px; font-weight:normal; border-bottom:1px solid #ff9040 }
+      p { font-size:14px }
+      li { font-size:14px }
+      a { color:#6060d0; text-decoration:none }
+      a:hover { text-decoration:underline }
+    </style>
+  </head>
 
 
-<body>
-<div class="box">
-	<img src="pkulogo.jpg" width="100" height="100" border="0"></a>
+  <body>
+    <div class="box">
+      <img src="pkulogo.jpg" width="100" height="100" border="0"></a>
 <p> </p>
-<p> <h1> XIA Pixie-Net DAQ Online </h1></p>
+<p> <h1> XIA Pixie-Net DAQ </h1></p>
 
-	<h2>DAQ Monitoring</h2>
-	<p> <b>During</b> or after the data acquisition, view most recent
-	<ul>
-		<li> <a href="mcapage.html">MCA spectra</a>
-	   <li> <a href="rspage.html">Run statistics</a> (short) 
-		<li> PSA <a href="psahistpage.html">histogram</a>, <a href="psahistprojpage.html">with projections</a> or <a href="psasurfacepage.html">surface</a> plot</p>
-	</ul>
-	<h2>DAQ Results</h2>
-	<p> <b>After</b> the data acquisition, open/download </p>
-   <ul>
-   	<li> <a href="LMdata.txt"> 0x500</a> List mode data with waveforms (from run type 0x500, text) </li>
-		<li> <a href="LMdata.dat"> 0x501</a> List mode data without waveforms (from run type 0x501, csv) </li>
-		<li> <a href="LMdata.dt2"> 0x502</a> List mode with PSA (from run type 0x502, csv)</li>
-		<li> <a href="LMdata.dt3"> 0x503</a> List mode coincidence data (from run type 0x503, csv)</li>
-		<li> <a href="LMdata.b00"> 0x400/402</a> Binary list mode data (from run types 0x400, 0x402)</li>
-	   <li> <a href="MCA.csv"> MCA spectra </a> as csv file</li>
-	   <li> <a href="RS.csv"> Run statistics </a> as csv file (full)</li>
-		<li> <a href="psa2D.csv"> PSA histogram </a> as csv file</li>
-	</ul>
-	
-	<p> To view <b>very short</b> list mode data files (run type 0x501) as a table,  <a href="lmtablepage.html"> click here</a>. 
-	    (Large files take very long to format as table.)  </p>
-   <p>To view most recent ADC traces in a plot,  <a href="adcpage.html"> click here</a>.</p>
+<h2>DAQ Online</h2>
+<p> <b>During</b> the data acquisition, view most recent waveform
+  <ul>
+    <li> <a href="onlinepage.html">Waveform</a>
+</ul>
+
+<p><b>Before</b> or <b>After</b> the data acquisition </p>
+<p>To view most recent ADC traces in a plot,  <a href="adcpage.html"> click here</a>.</p>
 
 
-	
-	<h2> CGI Current Data </h2>
-	<p><b>When no other task is in progress</b>, view/refresh
-    <ul>
-	    <li> <a href="cgitraces.cgi"> ADC traces </a> 	   </li>
-       <li> <a href="cgistats.cgi"> Run statistics </a> (full) </li>
-		 
-	 </ul></p>
+<h2> CGI Current Data </h2>
+<p><b>When no other task is in progress</b>, view/refresh
+  <ul>
+    <li> <a href="cgitraces.cgi"> ADC traces </a> 	   </li>
+    <li> <a href="cgistats.cgi"> Run statistics </a> (full) </li>
+    
+</ul></p>
 
-	<h2> Help </h2>
-	<p> View Pixie-Net <a href="Pixie_Net_Manual.pdf"> manual </a>  </p>
-	<p> XIA support website for <a href="http://support.xia.com/default.asp?W772"> Pixie-Net </a> </p>
+<h2> Help </h2>
+<p> View Pixie-Net <a href="Pixie_Net_Manual.pdf"> manual </a>  </p>
+<p> XIA support website for <a href="http://support.xia.com/default.asp?W772"> Pixie-Net </a> </p>
+
+
+
+
+<!-- <h2>DAQ Monitoring</h2> -->
+<!-- <p> <b>During</b> or after the data acquisition, view most recent -->
+<!--   <ul> -->
+<!--     <li> <a href="mcapage.html">MCA spectra</a> -->
+<!--     <li> <a href="rspage.html">Run statistics</a> (short)  -->
+<!--     <li> PSA <a href="psahistpage.html">histogram</a>, <a href="psahistprojpage.html">with projections</a> or <a href="psasurfacepage.html">surface</a> plot</p> -->
+<!-- </ul> -->
+<!-- <h2>DAQ Results</h2> -->
+<!-- <p> <b>After</b> the data acquisition, open/download </p> -->
+<!-- <ul> -->
+<!--   <li> <a href="LMdata.txt"> 0x500</a> List mode data with waveforms (from run type 0x500, text) </li> -->
+<!--   <li> <a href="LMdata.dat"> 0x501</a> List mode data without waveforms (from run type 0x501, csv) </li> -->
+<!--   <li> <a href="LMdata.dt2"> 0x502</a> List mode with PSA (from run type 0x502, csv)</li> -->
+<!--   <li> <a href="LMdata.dt3"> 0x503</a> List mode coincidence data (from run type 0x503, csv)</li> -->
+<!--   <li> <a href="LMdata.b00"> 0x400/402</a> Binary list mode data (from run types 0x400, 0x402)</li> -->
+<!--   <li> <a href="MCA.csv"> MCA spectra </a> as csv file</li> -->
+<!--   <li> <a href="RS.csv"> Run statistics </a> as csv file (full)</li> -->
+<!--   <li> <a href="psa2D.csv"> PSA histogram </a> as csv file</li> -->
+<!-- </ul> -->
+
+<!-- <p> To view <b>very short</b> list mode data files (run type 0x501) as a table,  <a href="lmtablepage.html"> click here</a>.  -->
+<!--   (Large files take very long to format as table.)  </p> -->
+
+
+
+
 </div>
 </body>
 

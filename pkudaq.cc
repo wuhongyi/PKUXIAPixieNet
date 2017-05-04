@@ -4,9 +4,9 @@
 // Author: Hongyi Wu(吴鸿毅)
 // Email: wuhongyi@qq.com 
 // Created: Mon May  1 10:49:37 2017 (+0000)
-// Last-Updated: Wed May  3 14:58:26 2017 (+0000)
+// Last-Updated: Thu May  4 13:03:59 2017 (+0000)
 //           By: Hongyi Wu(吴鸿毅)
-//     Update #: 28
+//     Update #: 43
 // URL: http://wuhongyi.cn 
 
 #include <stdio.h>
@@ -40,7 +40,13 @@ int main(int argc, char *argv[])
   int size = 4096;
   volatile unsigned int *mapped;  
 
-  unsigned int SyncT;
+  unsigned int wone, wtwo;
+  uint16_t waveform[MAX_TL];
+
+  unsigned int evstats, R1, hit, timeL, timeH, psa0, psa1, cfd0, cfd1;
+  unsigned int lsum, tsum, gsum;
+  unsigned int lsumb, tsumb, gsumb;
+  unsigned int chaddr;
   int rval;
 
 
@@ -57,10 +63,6 @@ int main(int argc, char *argv[])
       printf( "Failed to parse FPGA settings from %s, rval=%d\n", settings_file, rval );
       return rval;
     }
-
-  // assign to local variables, including any rounding/discretization
-  SyncT = fippiconfig.SYNC_AT_START;
-
 
   // *************** PS/PL IO initialization *********************
   // open the device for PD register I/O
@@ -88,51 +90,7 @@ int main(int argc, char *argv[])
 
 
   // Init FPGA
-  ReadParFileAndInitFPGA(mapped,&fippiconfig,&fpgaunitpar);
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // ********************** Run Start **********************
-
-  if(SyncT) mapped[ARTC_CLR] = 1;              // write to reset time counter
-  mapped[AOUTBLOCK] = 2;
-
-
-
-
-
-  mapped[ADSP_CLR] = 1;             // write to reset DAQ buffers
-  mapped[ACOUNTER_CLR] = 1;         // write to reset RS counters
-  mapped[ACSRIN] = 1;               // set RunEnable bit to start run
-  mapped[AOUTBLOCK] = OB_EVREG;     // read from event registers
-
-
-
-
-
-
-
-  // ********************** Run Stop **********************
-
-  // clear RunEnable bit to stop run
-  mapped[ACSRIN] = 0;               
-  // todo: there may be events left in the buffers. need to stop, then keep reading until nothing left
-                     
-
-
-  // mapped[AOUTBLOCK] = OB_RSREG;
-  // read_print_runstats(0, 0, mapped);// print (small) set of RS to file, visible to web
-  // mapped[AOUTBLOCK] = OB_IOREG;
+  InitFPGA(mapped,&fippiconfig,&fpgaunitpar);
 
 
   //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
@@ -144,23 +102,94 @@ int main(int argc, char *argv[])
 
   while(!PKU_DGTZ_RunManager.Quit) 
     {
-      CheckKeyboard(&PKU_DGTZ_RunManager);
+      CheckKeyboard(&PKU_DGTZ_RunManager,mapped,&fippiconfig);
 
       if (!PKU_DGTZ_RunManager.AcqRun) 
   	{
   	  Sleep(10);
   	  continue;
   	}
+      else
+	{
+	  // get baseline par 
 
 
 
+	  // if data ready. read out
+	  evstats = mapped[AEVSTATS];
+
+	  if(evstats) 
+	    {					  // if there are events in any channel
+	      for(int ch=0; ch < NCHANNELS; ch++)
+		{
+		  R1 = 1 << ch;
+		  if(evstats & R1)	
+		    {	 // check if there is an event in the FIFO 
+
+		      chaddr = ch*16+16;
+		      hit   = mapped[chaddr+CA_HIT];
+		      //    printf("channel %d, hit 0x%x\n",ch,hit);
+		      if(hit & 0x20) 
+			{ 
+			  timeL = mapped[chaddr+CA_TSL];
+			  timeH = mapped[chaddr+CA_TSH];
+			  psa0  = mapped[chaddr+CA_PSAA];// Q0raw/4 | B
+			  psa1  = mapped[chaddr+CA_PSAB];// M       | Q1raw/4
+			  cfd0  = mapped[chaddr+CA_CFDA];
+			  cfd1  = mapped[chaddr+CA_CFDB];
+                 
+			  //printf("channel %d, hit 0x%x, timeL %d\n",ch,hit,timeL);
+			  // read raw energy sums 
+			  lsum  = mapped[chaddr+CA_LSUM];// leading, larger, "S1", past rising edge
+			  tsum  = mapped[chaddr+CA_TSUM];// trailing, smaller, "S0" before rising edge
+			  gsum  = mapped[chaddr+CA_GSUM];// gap sum, "Sg", during rising edge; also advances FIFO and increments Nout etc
+
+			  lsumb = mapped[chaddr+CA_LSUMB];
+			  tsumb = mapped[chaddr+CA_TSUMB];
+			  gsumb = mapped[chaddr+CA_GSUMB];
 
 
+			  // get wave
+			  mapped[AOUTBLOCK] = 3;
 
+			  wone = mapped[AWF0+ch];  // dummy read?
+			  // printf("%d ",fpgaunitpar.TL[ch]);
+                          for(int k=0; k < (fpgaunitpar.TL[ch]/4); k++)
+			    {
+			      wone = mapped[AWF0+ch];
+			      wtwo = mapped[AWF0+ch];
+			      // re-order 2 sample words from 32bit FIFO
+
+			      waveform[4*k+0] = (uint16_t)(wtwo >> 16);
+			      waveform[4*k+1] = (uint16_t)(wtwo & 0xFFFF);
+			      waveform[4*k+2] = (uint16_t)(wone >> 16);
+			      waveform[4*k+3] = (uint16_t)(wone & 0xFFFF);
+
+			      if(PKU_DGTZ_RunManager.PlotFlag && PKU_DGTZ_RunManager.PlotRecent && (ch == PKU_DGTZ_RunManager.DoPlotChannel))
+				{
+				  DoInTerminal("rm -f online.csv");
+				  WriteOneOnlineWaveform(ch,fpgaunitpar.TL[ch],waveform);
+				  PKU_DGTZ_RunManager.PlotRecent = false;
+				}
+			    }
+                          mapped[AOUTBLOCK] = OB_EVREG;
+
+			}
+		      else 
+			{ // event not acceptable (piled up )
+			  R1 = mapped[chaddr+CA_REJECT];// read this register to advance event FIFOs without incrementing Nout etc
+			}
+
+
+		    }     // end event in this channel
+		}        //end for ch
+	    }           // end event in any channel
+
+	}
     }
 
 
-
+  //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
   flock( fd, LOCK_UN );
   munmap(map_addr, size);

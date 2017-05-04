@@ -286,9 +286,10 @@ struct DigitizerRun_t
 
   bool WriteFlag;//true:write  false:not write
 
-  // bool PlotFlag;
+  bool PlotFlag;
   // int DoPlotBoard;
-  // int DoPlotChannel;
+  int DoPlotChannel;
+  bool PlotRecent;
   // int PlotEveryN;//  plot one every N waveform
   // int PlotChooseN;//const
 
@@ -345,9 +346,12 @@ int PKU_init_PixieNetFippiConfig_from_file(const char * const filename, struct P
   
 void PrintInterface();
 
+void PrintRunningStatus(struct DigitizerRun_t *PKU_DGTZ_RunManager);
+
+
 void RunManagerInit(struct DigitizerRun_t *RunManager);
 
-void CheckKeyboard(struct DigitizerRun_t *PKU_DGTZ_RunManager);
+void CheckKeyboard(struct DigitizerRun_t *PKU_DGTZ_RunManager,volatile unsigned int *mapped,struct PixieNetFippiConfig *config);
 
 int kbhit();
 
@@ -360,9 +364,9 @@ long get_time();
 
 void DoInTerminal(char *terminal);
 
-void ReadParFileAndInitFPGA(volatile unsigned int *mapped, struct PixieNetFippiConfig *config, struct  DigitizerFPGAUnit *fpgapar);
+void InitFPGA(volatile unsigned int *mapped, struct PixieNetFippiConfig *config, struct  DigitizerFPGAUnit *fpgapar);
 
-
+void WriteOneOnlineWaveform(int ch,int point,uint16_t *waveform);
 
 #ifdef __cplusplus
 }

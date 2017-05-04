@@ -1480,12 +1480,19 @@ void PrintInterface()
 {
   printf("\n  [q]   Quit\n");
   printf("  [s]   Start/Stop acquisition\n");
-  printf("  [t]   Send a software trigger\n");
-  printf("  [w]   Enable/Disable continuous writing to output file\n");
-  printf("  [R]   Reload board parameters file and restart\n");
+  printf("  [g]   Read 8K samples from ADC register, visible to web \n");
   printf("  [p]   Enable/Disable  plot mode\n");
-  // printf("  [0]   Plot recently single on plot mode \n");
-  // printf("  [2/8] Minus/Plus one channel on plot mode\n");
+  printf("  [4/6] Minus/Plus one channel on plot mode\n");
+  printf("  [0]   Plot recently waveform on plot mode, visible to web \n");
+  printf("  [f]   Print running status\n");
+
+  // printf("  [t]   Send a software trigger\n");
+  // printf("  [w]   Enable/Disable continuous writing to output file\n");
+  // printf("  [R]   Reload board parameters file and restart\n");
+
+
+  
+
   // printf("  [4/6] Minus/Plus one board on plot mode\n");
   printf("--------------------------------------------------------------------------\n");
 
@@ -1502,21 +1509,53 @@ void RunManagerInit(struct DigitizerRun_t *RunManager)
   // RunManager->Nb = 0;
 
   RunManager->WriteFlag = false;
-  
+  RunManager->PlotFlag = false;  
+  RunManager->DoPlotChannel = 0;
+  RunManager->PlotRecent = false;  
+
   // memset(RunManager->PrevTime, 0, MAXNB*MaxNChannels*sizeof(uint64_t));
-
-
   // std::string PathToRawData = ReadValue<std::string>("PathToRawData",PKU_DGTZ_GlobalParametersFileName);
   // sprintf(RunManager->PathToRawData,"%s",PathToRawData.c_str());
   // std::cout<<RunManager->PathToRawData<<std::endl;
-
-  // RunManager->PlotFlag = false;
-  // RunManager->DoPlotBoard = 0;
-  // RunManager->DoPlotChannel = 0;
   // RunManager->PlotChooseN = ReadValue<int>("PlotChooseN",PKU_DGTZ_GlobalParametersFileName);
 }
 
-void CheckKeyboard(struct DigitizerRun_t *PKU_DGTZ_RunManager)
+void WriteOneOnlineWaveform(int ch,int point,uint16_t *waveform)
+{
+  FILE * fil;
+  fil = fopen("online.csv","w");
+
+  fprintf(fil,"sample,ch%d\n",ch);
+
+  //  write to file
+  for(int k = 0; k < point; k ++ )
+  {
+    fprintf(fil,"%d,%d\n ",k,waveform[k]);
+  }
+
+ // clean up  
+ fclose(fil);
+}
+
+void PrintRunningStatus(struct DigitizerRun_t *PKU_DGTZ_RunManager)
+{
+  PrintInterface();
+  printf("Status:\n");
+  if(PKU_DGTZ_RunManager->AcqRun) 
+    {
+      printf("Start acquisition,");
+      if(PKU_DGTZ_RunManager->WriteFlag) printf(" Writing file Number: %d\n",PKU_DGTZ_RunManager->RunNumber);
+      else printf(" Not Write ......\n");
+    }
+  else printf("You can enter [s] to start acquisition,enter [g] to read 8K samples from ADC register,...\n");
+  if(PKU_DGTZ_RunManager->PlotFlag)
+    {
+      printf("Monitor: Ch-%d\n",PKU_DGTZ_RunManager->DoPlotChannel);
+      if(PKU_DGTZ_RunManager->PlotRecent) printf("Waitting recently waveform !!!\n");
+    }
+}
+
+void CheckKeyboard(struct DigitizerRun_t *PKU_DGTZ_RunManager,volatile unsigned int *mapped,struct PixieNetFippiConfig *config)
 {
   int b;
 
@@ -1526,6 +1565,12 @@ void CheckKeyboard(struct DigitizerRun_t *PKU_DGTZ_RunManager)
       std::cout<<PKU_DGTZ_RunManager->Key<<std::endl;
       switch(PKU_DGTZ_RunManager->Key)
 	{
+	case 'f':
+	  {
+	    PrintRunningStatus(PKU_DGTZ_RunManager);
+	    break;
+	  }
+
 	case 'q' :
 	  {
 	    if(PKU_DGTZ_RunManager->AcqRun) 
@@ -1534,6 +1579,134 @@ void CheckKeyboard(struct DigitizerRun_t *PKU_DGTZ_RunManager)
 		break;
 	      }
 	    PKU_DGTZ_RunManager->Quit = true;
+	    break;
+	  }
+
+	case 's':
+	  {
+	    if(PKU_DGTZ_RunManager->AcqRun)
+	      {//running,do stop
+		// ********************** Run Stop **********************
+		// clear RunEnable bit to stop run
+		mapped[ACSRIN] = 0;               
+		// todo: there may be events left in the buffers. need to stop, then keep reading until nothing left
+                    
+		mapped[AOUTBLOCK] = OB_RSREG;
+		read_print_runstats(0, 0, mapped);// print (small) set of RS to file, visible to web
+		mapped[AOUTBLOCK] = OB_IOREG;
+
+		PKU_DGTZ_RunManager->AcqRun = false;
+	      }
+	    else//stop,do run
+	      {
+		// ********************** Run Start **********************
+		// assign to local variables, including any rounding/discretization
+		if(config->SYNC_AT_START) mapped[ARTC_CLR] = 1;              // write to reset time counter
+		mapped[AOUTBLOCK] = 2;
+
+		unsigned int startTS =mapped[AREALTIME];
+		std::cout<<"StartTime: "<<startTS<<std::endl;
+
+		mapped[ADSP_CLR] = 1;             // write to reset DAQ buffers
+		mapped[ACOUNTER_CLR] = 1;         // write to reset RS counters
+		mapped[ACSRIN] = 1;               // set RunEnable bit to start run
+		mapped[AOUTBLOCK] = OB_EVREG;     // read from event registers
+
+		PKU_DGTZ_RunManager->AcqRun = true;
+		PKU_DGTZ_RunManager->PlotFlag = false;
+		DoInTerminal("rm -f online.csv");
+	      }
+	    break;
+	  }
+
+
+	case 'g':
+	  {
+	    if(PKU_DGTZ_RunManager->AcqRun) 
+	      {
+		printf("Please enter [s] to stop and enter [g] to get traces.\n");
+		break;
+	      }
+	    else
+	      {
+		FILE * fil;
+		unsigned int adc0[NTRACE_SAMPLES], adc1[NTRACE_SAMPLES], adc2[NTRACE_SAMPLES], adc3[NTRACE_SAMPLES];
+		int k;
+		DoInTerminal("rm -f ADC.csv");
+
+		// read 8K samples from ADC register 
+		// at this point, no guarantee that sampling is truly periodic
+		mapped[AOUTBLOCK] = OB_EVREG;// switch reads to event data block of addresses
+
+		// dummy reads for sampling update
+		k = mapped[AADC0] & 0xFFFF;
+		k = mapped[AADC1] & 0xFFFF;
+		k = mapped[AADC2] & 0xFFFF;
+		k = mapped[AADC3] & 0xFFFF;
+
+		for(k = 0; k < NTRACE_SAMPLES; k ++ )
+		  adc0[k] = mapped[AADC0] & 0xFFFF;
+		for( k = 0; k < NTRACE_SAMPLES; k ++ )
+		  adc1[k] = mapped[AADC1] & 0xFFFF;
+		for( k = 0; k < NTRACE_SAMPLES; k ++ )
+		  adc2[k] = mapped[AADC2] & 0xFFFF;
+		for( k = 0; k < NTRACE_SAMPLES; k ++ )
+		  adc3[k] = mapped[AADC3] & 0xFFFF;
+
+		// open the output file
+		fil = fopen("ADC.csv","w");
+		fprintf(fil,"sample,Ch0,Ch1,Ch2,Ch3\n");
+
+		//  write to file
+		for(k = 0; k < NTRACE_SAMPLES; k ++ )
+		  {
+		    fprintf(fil,"%d,%d,%d,%d,%d\n ",k,adc0[k],adc1[k],adc2[k],adc3[k]);
+		  }
+ 
+		fclose(fil);// clean up  
+	      }
+	    break;
+	  }
+
+	case 'p':
+	  {
+	    if(PKU_DGTZ_RunManager->PlotFlag)
+	      {//ploting,do stop
+		PKU_DGTZ_RunManager->PlotFlag = false;
+		DoInTerminal("rm -f online.csv");
+	      }
+	    else
+	      {// not plot ,do start
+		PKU_DGTZ_RunManager->PlotFlag = true;
+		PKU_DGTZ_RunManager->DoPlotChannel = 0;
+		PKU_DGTZ_RunManager->PlotRecent = true;
+	      }
+	    break;
+	  }
+
+	case '0':
+	  {
+	    PKU_DGTZ_RunManager->PlotRecent = true;
+	    break;
+	  }
+
+	case '4':
+	  {
+	    if(PKU_DGTZ_RunManager->DoPlotChannel > 0)
+	      {
+		PKU_DGTZ_RunManager->DoPlotChannel--;
+		PKU_DGTZ_RunManager->PlotRecent = true;
+	      }
+	    break;
+	  }
+
+	case '6':
+	  {
+	    if(PKU_DGTZ_RunManager->DoPlotChannel < NCHANNELS-1)
+	      {
+		PKU_DGTZ_RunManager->DoPlotChannel++;
+		PKU_DGTZ_RunManager->PlotRecent = true;
+	      }
 	    break;
 	  }
 
@@ -1630,7 +1803,7 @@ long get_time()
   return time_ms;
 }
 
-void ReadParFileAndInitFPGA(volatile unsigned int *mapped, struct PixieNetFippiConfig *config, struct  DigitizerFPGAUnit *fpgapar)
+void InitFPGA(volatile unsigned int *mapped, struct PixieNetFippiConfig *config, struct  DigitizerFPGAUnit *fpgapar)
 {
   unsigned int  mval;
   int addr;

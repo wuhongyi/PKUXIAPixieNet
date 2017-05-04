@@ -4,9 +4,9 @@
 ;; Author: Hongyi Wu(吴鸿毅)
 ;; Email: wuhongyi@qq.com 
 ;; Created: 四 4月 27 23:08:59 2017 (+0800)
-;; Last-Updated: 五 4月 28 15:30:52 2017 (+0800)
+;; Last-Updated: Thu May  4 10:50:29 2017 (+0000)
 ;;           By: Hongyi Wu(吴鸿毅)
-;;     Update #: 10
+;;     Update #: 11
 ;; URL: http://wuhongyi.cn -->
 
 # README
@@ -38,7 +38,7 @@ apt-get install cmake
 
 
 ## 恢复SD卡原始空间
-为了加快镜像装载速速，实际上只格式化了2G左右的SD卡空间，我16G的SD卡还有13G多的空间都没用到，为了能够进行使用进行如下操作
+为了加快镜像装载速度，实际上只格式化了16G左右的SD卡空间，我32G的SD卡还有16G多的空间都没用到，为了能够进行使用进行如下操作
 ```shell
 fdisk /dev/mmcblk0
 ```
@@ -55,6 +55,19 @@ resize2fs /dev/mmcblk0p2
 df -h
 ```
 查看最后追加的结果
+
+
+## 运行要求
+
+```shell
+cd /var/www/PKUXIAPixieNet
+# /var/www 目录是网页服务可直接查看的目录。因此将我们的程序包PKUXIAPixieNet放在该目录下
+
+chmod 777 /dev/uio0
+#授权，让cgi可直接通过网页交互读取FPGA寄存器上数据
+```
+
+
 
 
 
