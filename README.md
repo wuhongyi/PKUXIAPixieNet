@@ -4,9 +4,9 @@
 ;; Author: Hongyi Wu(吴鸿毅)
 ;; Email: wuhongyi@qq.com 
 ;; Created: 四 4月 27 23:08:59 2017 (+0800)
-;; Last-Updated: Thu May  4 10:50:29 2017 (+0000)
+;; Last-Updated: Thu May  4 15:05:21 2017 (+0000)
 ;;           By: Hongyi Wu(吴鸿毅)
-;;     Update #: 11
+;;     Update #: 12
 ;; URL: http://wuhongyi.cn -->
 
 # README
@@ -68,7 +68,9 @@ chmod 777 /dev/uio0
 ```
 
 
+## 传输速率
 
+内置micro SD卡一方面容量太小，一方面写入速度也仅有30MB/s左右，USB2.0数据传输在30MB/s左右，因此应该利用其千兆网卡功能（远程电脑也得千兆网卡、配上千兆交换机、千兆网线），通过挂载远程硬盘到本地，实现数据写入远程电脑硬盘，这样估计传输能比以上两种方式大不少。
 
 
 未完待续。。。。
